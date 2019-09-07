@@ -1,0 +1,35 @@
+---
+title: 'Assignment 0: Questions 6-8'
+output:
+  html_notebook: default
+  pdf_document: default
+---
+
+
+```{r}
+X <- matrix(c(10,3,5,1,8,2,9,7,4), nrow = 3, ncol = 3)
+print(X)
+Y <- matrix(c(2,8,3,5,1,12,13,4,7), nrow = 3, ncol = 3)
+print(Y)
+```
+
+Question 6:
+
+```{r}
+print(X+Y)
+```
+
+Question 7:
+
+```{r}
+solve((t(X)%*%X))%*%t(X)%*%Y
+```
+
+Question 8:
+
+```{r}
+samples <- runif(10000)
+percentile <- quantile(samples, probs = c(0.005,0.995))
+print(percentile)
+
+```
