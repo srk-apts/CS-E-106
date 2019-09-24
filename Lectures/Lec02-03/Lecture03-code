@@ -1,0 +1,56 @@
+######################
+Confidence Interval for Betas
+######################
+
+toluca.reg<-lm(workhrs~lotsize,data=toluca_data)
+summary(toluca.reg)
+confint(toluca.reg)
+
+
+######################
+Confidence Interval for Yh
+######################
+
+Xh<-data.frame(lotsize=100)
+
+predict(toluca.reg,Xh,interval="confidence",level=0.90)
+
+######################
+Confidence Interval for new Yh (or Prediction Interval)
+######################
+
+predict(toluca.reg,Xh,interval="prediction",level=0.90)
+predict(toluca.reg,Xh,se.fit=TRUE,interval="prediction",level=0.90)
+$fit
+       fit      lwr     upr
+1 419.3861 394.9251 443.847
+
+$se.fit
+[1] 14.27233  # =====>S(Yh)
+
+$df
+[1] 23
+
+$residual.scale
+[1] 48.82331  # ======>sqrt(MSE)
+
+var.pred =(48.82331^2)/3 + (14.27233)^2
+
+tc=qt(1-0.10/2,23)
+
+cbind(419.3861-tc*sqrt(var.pred),419.3861+tc*sqrt(var.pred))
+
+######################
+Working Hotelling
+######################
+W <- sqrt( 2 * qf(0.90,2,23))
+CI<-predict(toluca.reg,se.fit=TRUE,interval="confidence",level=0.90)
+cbind(CI$fit[,1]-W*CI$se.fit, CI$fit[,1] + W*CI$se.fit )
+
+######################
+Correlation Test
+######################
+
+cor.test(expenditures$Y1,expenditures$Y2,method="pearson")
+cor.test(expenditures$Y1,expenditures$Y2,method="spearman")
+
