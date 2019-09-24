@@ -1,0 +1,19 @@
+---
+title: "Lec03_example"
+author: "Saurabh Kulkarni"
+date: "9/23/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+lmfit_toluca = lm(workhrs ~ lotsize, data = toluca_data)
+#summary(lmfit_toluca)
+
+#xh <- data.frame(lotsize = 100)
+xh <- data.frame(toluca_data)
+
+predict(lmfit_toluca,xh,interval = "confidence", level = 0.90)
+predict(lmfit_toluca,xh,interval = "prediction", level = 0.90) 
+
+```
+
