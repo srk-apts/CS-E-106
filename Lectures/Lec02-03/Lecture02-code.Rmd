@@ -1,0 +1,90 @@
+---
+title: "Lecture02-code"
+author: "Saurabh Kulkarni"
+date: "9/24/2019"
+output: html_document
+---
+
+```{r}
+toluca_data = read.csv("toluca_data.csv")
+toluca.reg = lm(workhrs~lotsize, data=toluca_data)
+summary(toluca.reg)
+```
+
+```{r}
+t = 3.57/0.347
+print(t)
+```
+
+
+```{r}
+pr_t = 1-pt(10.29, 23)
+print(pr_t)
+```
+ 
+```{r}
+help("confint")
+confint(toluca.reg)
+```
+
+
+```{r}
+confint(toluca.reg, level=0.99)
+```
+
+Note: Not expected to do it this way:
+```{r}
+3.57-qt(1-0.05/2,23)*0.347
+```
+
+
+```{r}
+names(toluca.reg)
+```
+
+
+```{r}
+toluca.reg$fitted.values
+```
+ 
+```{r}
+toluca.reg$model
+```
+
+
+```{r}
+cbind(toluca.reg$model, toluca.reg$fitted.values)
+```
+
+
+```{r}
+help("predict")
+predict(toluca.reg, interval = "confidence")
+
+```
+
+
+```{r}
+predict(toluca.reg, interval="prediction")
+```
+
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+ 
+```{r}
+```
+
+
+```{r}
+```
+
