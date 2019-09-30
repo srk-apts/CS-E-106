@@ -1,0 +1,70 @@
+---
+title: '**CS-E-106: Data Modeling**'
+subtitle: '**Assignment 0**'
+date: '**Due Date:** 09/16/2019'
+author:
+  - '**Instructor: Hakan Gogtas**'
+  - '**Submitted by:** Saurabh Kulkarni'
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+
+**Solution 1:**
+
+**(a).**
+
+$$f_X(x) = ax^{a-1}$$
+
+$$\mathbb{E}[X] = \int_{-\inf}^{\inf}x.f_X(x)dx = \int_{0}^{1}x.a.x^{a-1}dx = a\int_{0}^{1}x^{a}dx = a\frac{1}{(a+1)}x^{a+1}|_{0}^{1} = \frac{a}{a+1}$$
+
+$$Var[X] = \mathbb{E}[X^{2}]-(\mathbb{E}[X])^{2} = \int_{0}^{1}x^{2}.a.x^{a-1}dx-(\mathbb{E}[X])^{2} = 
+a\int_{0}^{1}x^{a+1}dx-(\mathbb{E}[X])^{2} = a\frac{1}{(a+2)}x^{a+2}|_{0}^{1}-(\frac{a}{a+1})^{2}=\frac{a}{(a+2)(a+1)^{2}}$$
+
+
+**(b).**
+$$f_X(x) = \frac{x}{n}$$
+
+$$\mathbb{E}[X] = \sum_{-\inf}^{\inf}xf_X(x) = \frac{1}{n}\sum_{x=1}^{n}x^{2} = \frac{(n+1)(2n+1)}{6}$$
+
+$$Var(X) = \mathbb{E}[X^{2}]-(\mathbb{E}[X])^{2} = \frac{1}{n}\sum_{x=1}^{n}x^{3}-(\mathbb{E}[X])^{2} = (\frac{n(n+1)}{2})^{2}-(\frac{(n+1)(2n+1)}{6})^{2} = -\frac{(n+1)(4n^{2})-5n+1)}{36}$$
+
+**(c).**
+$$f_X(x) = \frac{3}{2}(x-1)^{2}$$
+
+$$\mathbb{E}[X] = \int_{-\inf}^{\inf}x.f_X(x)dx = \int_{0}^{2}x.\frac{3}{2}(x-1)^{2}dx = \frac{3}{2}\int_{0}^{2}(x^{3}-2x^{2}+x)dx = \frac{3}{2}[\frac{1}{4}x^{4}-\frac{2}{3}x^{3}+\frac{1}{2}x^{2}]|_0^2=1$$
+
+$$Var(X) = \mathbb{E}[X^{2}]-(\mathbb{E}[X])^{2} = \int_{0}^{2}x^{2}.\frac{3}{2}(x-1)^{2}dx-1 = \frac{3}{2}[\frac{1}{5}x^{5}-\frac{1}{2}x^{4}+\frac{1}{3}x^{3}]|_0^2-1=\frac{3}{5}$$
+
+
+
+**R Programming Questions**
+
+```{r}
+X <- matrix(c(10,3,5,1,8,2,9,7,4), nrow = 3, ncol = 3)
+print(X)
+Y <- matrix(c(2,8,3,5,1,12,13,4,7), nrow = 3, ncol = 3)
+print(Y)
+```
+
+**Solution 6:**
+
+```{r}
+print(X+Y)
+```
+
+**Solution 7:**
+
+```{r}
+solve((t(X)%*%X))%*%t(X)%*%Y
+```
+
+**Solution 8:**
+
+```{r}
+samples <- runif(10000)
+percentile <- quantile(samples, probs = c(0.005,0.995))
+print(percentile)
+
+```
