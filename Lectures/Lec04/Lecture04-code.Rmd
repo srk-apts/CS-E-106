@@ -1,0 +1,133 @@
+---
+title: "Lecture04-code"
+author: "Saurabh Kulkarni"
+date: "9/24/2019"
+output: pdf_document
+---
+
+```{r}
+toluca_data = read.csv("toluca_data.csv")
+toluca.reg<-lm(workhrs~lotsize,data=toluca_data)
+summary(toluca.reg)
+```
+
+
+```{r}
+par(mfrow=c(2,2))
+plot(toluca.reg)
+
+```
+
+
+```{r}
+par(mfrow=c(2,2))
+red = toluca.reg$residuals
+boxplot(red)
+plot(red, toluca_data$workhrs)
+plot(red,toluca_data$lotsize)
+plot(abs(red), toluca_data$lotsize)
+```
+
+
+```{r}
+par(mfrow=c(2,2))
+stdres = rstandard(toluca.reg)
+plot(stdres)
+boxplot(stdres)
+qqnorm(stdres)
+qqline(stdres)
+```
+
+
+```{r}
+# Brown-Forsythe Test
+summary(toluca.reg)
+summary(toluca_data$lotsize)
+```
+
+
+```{r}
+bf_dat = data.frame(toluca_data$lotsize, toluca.reg$residuals)
+bf_dat
+```
+
+
+```{r}
+# Selecting rows less than the median value of 
+# the lotsize (obtained above through summary()).
+bf_dat1 = bf_dat[bf_dat[,1]<=70,]
+bf_dat1
+```
+
+
+```{r}
+# Selecting rows greater than the median value of 
+# the lotsize (obtained above through summary()).
+bf_dat2 = bf_dat[bf_dat[,1]>=70,]
+bf_dat
+```
+
+
+```{r}
+summary(bf_dat1[,2])
+```
+
+```{r}
+d1i = abs(bf_dat1[,2]+19.876)
+d1i
+```
+
+
+```{r}
+mean(d1i)
+```
+
+
+```{r}
+## Breusch-Pagan Test
+ei2 = toluca.reg$residuals^2
+f1 = lm(ei2~toluca_data$lotsize)
+summary(f1)
+
+```
+p-value of lotsize is 0.3 and R-sq is almost 0, indicating no significant correlation between the squared errors and lotsize (independent variable).
+
+```{r}
+anova(f1)
+```
+
+
+```{r}
+anova(toluca.reg)
+```
+
+```{r}
+## Textbook formula
+SSR1 = 7896142
+SSE = 54825
+n = 25
+X_BP2 = (SSR1/2)/((SSE/n)^2)
+X_BP2
+```
+
+
+```{r}
+## Box-Cox Transformation
+library(MASS)
+par(mfrow=c(1,1))
+boxcox(toluca.reg, lambda=seq(-5,5, by=0.1))
+
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
