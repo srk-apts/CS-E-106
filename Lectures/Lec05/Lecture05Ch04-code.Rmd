@@ -1,0 +1,83 @@
+---
+title: "Lecture04-code"
+author: "Saurabh Kulkarni"
+date: "9/24/2019"
+output: pdf_document
+---
+
+**Chapter 4**
+
+```{r}
+toluca_data = read.csv("toluca_data.csv")
+fitreg = lm(workhrs~lotsize, data=toluca_data)
+confint(fitreg, level=1-0.1) # the individual 95% C.I. 
+confint(fitreg, level=1-0.1/2) # Bonferroni Joint 95% C.I.
+```
+
+**Simultaneous Estimation of C.I.**
+
+**Working-Hotelling**
+
+```{r}
+W = sqrt(2*qf(0.9,2,23))
+W
+Xh = data.frame(lotsize=c(30,65,100))
+CI = predict(fitreg, Xh, se.fit=TRUE, interval="confidence", level=0.9)
+cbind(CI$fit[,1]-W*CI$se.fit, CI$fit[,1]+W*CI$se.fit)
+```
+
+**Bonferroni**
+
+```{r}
+alpha = 0.1
+Xh = data.frame(lotsize=c(30,65,100))
+pred = predict(fitreg, Xh , se.fit=TRUE, interval="confidence", level=1-alpha)
+B = rep(qt(1-alpha/(2*nrow(Xh)),n-2),nrow(Xh))
+rbind(pred$fit-B* pred$se.fit, pred$fit+B* pred$se.fit)
+```
+
+**Simultaneous Estimation of C.I. for New Observation**
+
+- Scheffe (S)
+- Bonferroni (B)
+
+```{r}
+Xh = data.frame(lotsize=c(80,100))
+g = nrow(Xh)
+alpha<-0.05
+CI.New = predict.lm(fitreg, Xh, se.fit= TRUE, level = 1-alpha)
+M  = rbind(rep(qt(1 -alpha / (2*g), fitreg$df),g), rep(sqrt( g * qf( 1 -alpha, g, fitreg$df)),g))
+spred = sqrt( CI.New$residual.scale^2 + (CI.New$se.fit)^2 ) # (2.38)
+pred.new = t(rbind(
+"Yh" = Xh,
+"s.pred" = spred,
+"fit" = CI.New$fit,
+"lower.B" = CI.New$fit-M[1,] * spred,
+"upper.B" = CI.New$fit+ M[1,] * spred,
+"lower.S" = CI.New$fit-M[2,] * spred,
+"upper.S" = CI.New$fit+ M[2,] * spred))
+
+pred.new
+
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
