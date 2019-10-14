@@ -6,7 +6,8 @@ author:
   - '**Instructor: Hakan Gogtas**'
   - '**Submitted by:** Saurabh Kulkarni'
 output:
-  pdf_document: default
+  pdf_document: 
+    latex_engine: xelatex
 ---
 
  
@@ -22,7 +23,7 @@ title(main="Scatter Plot Original Data")
 
 ```
 
-*Interpretation:**
+*Interpretation:*
 
 A linear relation does not seem adequate here. Based on the scatterplot, there seems to be a curvilinear relation between X and Y and for the same reason we need a transormation on either X or Y.
 
@@ -177,11 +178,6 @@ Based on the scatter plot, the regression line appears to be a good fit on trans
 
 **(f)**
 
-```{r fig.align="center"}
-plot(lm_soln_t)
-
-```
-
 
 ```{r}
 build_residual_qq(lm=lm_soln_t, df=solution_data, rse=0.115)
@@ -197,7 +193,7 @@ build_residual_qq(lm=lm_soln_t, df=solution_data, rse=0.115)
 
 **(g)**
 
-The regression function with transformed data (in original units): $\log{Y} = 1.50792 - 0.44993*X $
+The regression function with transformed data (in original units): $\log{Y} = 1.50792 - 0.44993*X$
 
 
 
@@ -213,12 +209,6 @@ summary(lm_crime)
 ```
 
 The regression function: $Y = 20517.60 - 170.58*X$
-
-
-```{r}
-plot(lm_crime)
-
-```
 
 
 ```{r fig.align="center"}
@@ -294,11 +284,11 @@ Decision Rule:
 
 
 Result:
-Since $|1.957763| > 1.65787$ i.e. $|testStatistic| \leq t(1-\alpha/2,n-2)$, we conclude $H_{1}$. The error variance is not constant.
+Since $|1.957763| > 1.65787$ i.e. $|testStatistic| > t(1-\alpha/2,n-2)$, we conclude $H_{1}$. The error variance is not constant and thus varies with X.
 
 The conclusion supports the preliminary findings in part (a).
 
-**Note:** The problem statement asks us to divide the dataset between X≤69 and X > 69, however, the mean of X is 79. As confirmed on piazza, we can use both 69 and 79 as medians.
+**Note:** The problem statement asks us to divide the dataset between X≤69 and X > 69, however, the mean of X is 79. As confirmed on piazza, we can use either 69 or 79 as medians.
 
 
 **(c)**
@@ -400,7 +390,7 @@ We can say with 90% family confidence coefficient that both of the above interva
 mean(plastic_data$X)
 ```
 
-Thus, $\bar{X} > 0$ which means that $\beta_{0}$ and $\beta_{1}$ are negatively correlated. This is to balance the effect of one coefficient on the response, by the other coefficient. So if $\beta_{1}$ is too high, $\beta_{0}$ is likely to be too low to balance out the effect of $\beta_{1}$ on Y.
+Thus, $\bar{X} > 0$ which means that $\beta_{0}$ and $\beta_{1}$ are negatively correlated. This is to balance the effect of one coefficient, on the response, with the other coefficient. So, for example, if $\beta_{1}$ is too high, $\beta_{0}$ is likely to be too low to balance out the effect of $\beta_{1}$ on Y.
 
 The joint confidence intervals in part (b) do support this view.
 
@@ -447,7 +437,7 @@ print(S)
 
 *Interpretation:*
 
-Thus, we can see that the most efficient procedure is the Bonferroni using t-distribution (compared to Scheffe using F-distribution) as it will yeild tighter linits (since B<S).
+Thus, we can see that the most efficient procedure is the Bonferroni using t-distribution (compared to Scheffe using F-distribution) as it will yeild tighter linits (since $B<S$).
 
 ```{r}
 pred_new_CI = t(
@@ -465,6 +455,7 @@ pred_new_CI
 
 **Solution 5:**
 
+
 ```{r}
 cdi = read.csv("CDI.csv")
 lm_cdi = lm(Number.of.active.physicians~Total.population, data=cdi)
@@ -479,7 +470,7 @@ confint(lm_cdi, level=1-0.05/2)
 
 **(b)**
 
-Both the values suggested by the investigator fall within the 95% joint confidence intervals obtained for $\beta_{1}$ and $\beta_{0}$ in part(a). Thus, the results in part(a) support the view of the investigator.
+Both the values suggested by the investigator, $\beta_{1}=-100$ and $\beta_{0}=0.0028$, fall within the 95% joint confidence intervals obtained in part(a). Thus, the results in part(a) support the view of the investigator.
 
 **(c)**
 
@@ -499,7 +490,7 @@ print(W)
 
 *Interpretation:*
 
-Thus, we can see that the most efficient procedure is the Bonferroni using t-distribution (compared to Working-Hotelling using F-distribution) as it will yeild tighter limits (since B<F).
+Thus, we can see that the most efficient procedure is the Bonferroni using t-distribution (compared to Working-Hotelling using F-distribution) as it will yeild tighter limits (since $B<W$).
 
 
 **(d)**
@@ -636,7 +627,7 @@ senic_data[c(47,112),]
 
 *Interpretation:*
 
-The observation Y47 and Y112 fall outside the individual confidence intervals obtained above.
+The observation Y47 and Y112 fall outside the individual confidence intervals obtained above. This means that if our sample were to be without Y47 and Y112, the actual values of these observations would not fall within out-of-sample C.I. given by the estimated regresion function. Thus, these observations are deemed to be outliers.
 
 
 
