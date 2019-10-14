@@ -1,0 +1,643 @@
+---
+title: '**CS-E-106: Data Modeling**'
+subtitle: '**Assignment 4**'
+date: '**Due Date:** 10/14/2019'
+author:
+  - '**Instructor: Hakan Gogtas**'
+  - '**Submitted by:** Saurabh Kulkarni'
+output:
+  pdf_document: default
+---
+
+ 
+**Solution 1:**
+
+**(a)**
+
+```{r}
+par(mfrow=c(1,1))
+prod_time_data = read.csv("Production Time.csv")
+plot(prod_time_data$X, prod_time_data$Y)
+title(main="Scatter Plot Original Data")
+
+```
+
+*Interpretation:**
+
+A linear relation does not seem adequate here. Based on the scatterplot, there seems to be a curvilinear relation between X and Y and for the same reason we need a transormation on either X or Y.
+
+
+**(b)**
+
+```{r}
+X1 = sqrt(prod_time_data$X)
+prod_time_data2 = cbind(X1, prod_time_data)
+lm_prod = lm(Y~X1, data=prod_time_data2)
+summary(lm_prod)
+```
+
+The regression function on *transformed data*: $Y = 1.2547 + 3.6235*X1$ 
+
+**(c)**
+
+```{r fig.align='center'}
+par(mfrow=c(1,1))
+plot(prod_time_data2$X1, prod_time_data2$Y, xlab=expression(sqrt(X)), ylab="Y")
+title(main="Fitted Regression Line on Transformed Data")
+abline(lm_prod)
+```
+
+*Interpretation:*
+
+Based on the scatter plot, the regression line appears to be a good fit on transformed data. Looking at the summary, we can also see that the $R^{2} = 0.77$.
+
+
+**(d)**
+
+
+```{r fig.align = "center"}
+build_residual_qq <- function(lm, df, rse){
+  ei = lm$residuals
+  fitted_values = lm$fitted.values
+  
+  par(mfrow=c(1,1))
+  plot(fitted_values, ei, xlab="Fitted Values", ylab="Residuals")
+  title(main="Fitted Values vs. Residuals")
+  
+  
+  ri = rank(ei)
+  n = nrow(df)
+  zr = (ri-0.375)/(n+0.25)
+  
+  #residual standard error from summary(lm) above
+  zr1 = rse*qnorm(zr)
+  
+  print(cor.test(zr1, ei))
+  
+  plot(zr1, ei, xlab="Expected Value under Normality",ylab="Residuals")
+  title(main="Normal Probability Plot")
+    
+}
+
+build_residual_qq(lm=lm_prod, df=prod_time_data2, rse=1.99)
+
+```
+
+
+
+*Interpretation:*
+
+*Fitted vs. Residual Plot:* The residuals appear to be equally spread and have no distinct patterns. Although there seem to be a few outliers. We can say that there is contant variance in the error term.
+
+*Normal Probability Plot:* The plot seems to be almost linear, which means that the error is in agreement with the normality. 
+
+
+**(e)**
+
+The regression function in *original units*: $Y = 1.2547 + 3.6235*\sqrt{X}$
+
+
+**Solution 2:**
+
+**(a)**
+
+```{r}
+solution_data = read.csv("Solution Concentration.csv")
+lm_soln = lm(Y~X, data=solution_data)
+summary(lm_soln)
+```
+
+The regression function for *original data*: $Y = 2.5753 - 0.3240*X$
+
+
+```{r fig.align = "center"}
+build_residual_qq(lm=lm_soln, df=solution_data, rse=0.4743)
+
+```
+
+*Interpretation:*
+
+*Fitted vs. Residual Plot:* The residuals are not equally spread and have a clear distinct pattern. Thus, we can say that, the error term does not have constant variance.
+
+*Normal Probability Plot:* The plot seems to be non-linear, which means that the error is not in agreement with the normality. 
+
+
+**(b)**
+
+```{r fig.align = "center"}
+plot(solution_data$X, solution_data$Y)
+```
+
+*Interpretation:*
+
+Since the value of Y seems to be decreasing with the value of X and then smoothing out eventually, it seems like a logarithmic or exponential function. Thus I would like to try to transform Y to log(Y).
+
+**(c)**
+
+``````{r problem 2.b, fig.height=10, fig.width=10, fig.align = "center"}
+library(MASS)
+par(mfrow=c(2,1))
+boxcox(lm_soln)
+boxcox(lm_soln, lambda=c(-.2,-.1,0, .1, .2))
+
+```
+
+*Interpretation:*
+
+The suggested Y transformation with Box-Cox method is: $\lambda \approx 0$. Thus, we'll assume the suggested $\lambda = 0$, which implies the suggested transformation is: $Y' = log(Y)$.
+
+**(d)**
+
+```{r}
+Y1 = log(solution_data$Y)
+solution_data = cbind(solution_data, Y1)
+
+```
+
+
+```{r}
+lm_soln_t = lm(Y1~X, data=solution_data)
+summary(lm_soln_t)
+```
+
+The regression function with *transformed data*: $Y' = 1.50792 - 0.44993*X $
+
+**(e)**
+
+```{r}
+par(mfrow=c(1,1))
+plot(solution_data$X, solution_data$Y1, xlab="X", ylab=expression(log(Y)))
+abline(lm_soln_t)
+title(main="Fitted Regression Line on Transformed Data")
+```
+
+*Interpretation:*
+
+Based on the scatter plot, the regression line appears to be a good fit on transformed data. Looking at the summary, we can also see that the $R^{2} = 0.993$.
+
+**(f)**
+
+```{r fig.align="center"}
+plot(lm_soln_t)
+
+```
+
+
+```{r}
+build_residual_qq(lm=lm_soln_t, df=solution_data, rse=0.115)
+
+```
+
+*Interpretation:*
+
+*Fitted vs. Residual Plot:* The residuals are equally spread and don't have a pattern. Thus, we can say that, the error term has a constant variance.
+
+*Normal Probability Plot:* The plot seems to be non-linear, which means that the error is not in agreement with the normality. 
+
+
+**(g)**
+
+The regression function with transformed data (in original units): $\log{Y} = 1.50792 - 0.44993*X $
+
+
+
+**Solution 3:**
+
+**(a)**
+
+```{r}
+crime_data = read.csv("Crime Rate.csv")
+lm_crime = lm(Y~X, data=crime_data)
+summary(lm_crime)
+
+```
+
+The regression function: $Y = 20517.60 - 170.58*X$
+
+
+```{r}
+plot(lm_crime)
+
+```
+
+
+```{r fig.align="center"}
+build_residual_qq(lm=lm_crime, df=crime_data, rse=2356)
+```
+
+*Interpretation:*
+
+*Fitted vs. Residual Plot:* The residuals are not equally spread and have some pattern. Thus, we can say that, the error term does not have constant variance.
+
+*Normal Probability Plot:* The plot seems to be s-shaped with heavy tails, which means that the error is not in agreement with normality. 
+
+
+**(b)**
+
+*Brown-Forsythe Test*
+
+Null Hypothesis: $H_{0}$: Error variance is constant
+Alternate Hypothesis: $H_{1}$: Error variance is not constant
+
+```{r}
+summary(crime_data$X)
+```
+
+
+```{r}
+ei = lm_crime$residuals
+df = data.frame(cbind(crime_data$Y,crime_data$X,ei))
+df1 = df[df[,2]<=69,]
+df2 = df[df[,2]>69,]
+
+med1 = median(df1[,3])
+med2 = median(df2[,3])
+
+#n1
+n1 = nrow(df1)
+print(n1)
+
+#n2
+n2 = nrow(df2)
+print(n2)
+
+d1 = abs(df1[,3]+med1)
+d2 = abs(df2[,3]+med2)
+
+#calculate means for our answer 
+mean_d1 = mean(d1)
+print(mean_d1)
+mean_d2 = mean(d2)
+print(mean_d2)
+
+s2 = (var(d1)*(n1-1)+var(d2)*(n2-1))/(120-2)
+print(s2)
+
+#calculate s
+s = sqrt(s2)
+print(s)
+
+#testStastic = (mean.d1 - mean.d2) / (s * sqrt((1/n1)+1/n2)
+testStastic = (mean_d1-mean_d2)/(s*sqrt((1/n1)+(1/n2)))  
+print(testStastic)
+
+t = qt(1-0.05, 118) 
+print(t)
+
+```
+
+Decision Rule:
+
+- If $|testStatistic| \leq t(1-\alpha/2,n-2)$, conclude $H_{0}$: constant error variance
+
+- If $|testStatistic| > t(1-\alpha/2,n-2)$, conclude $H_{1}$: non-constant error variance 
+
+
+Result:
+Since $|1.957763| > 1.65787$ i.e. $|testStatistic| \leq t(1-\alpha/2,n-2)$, we conclude $H_{1}$. The error variance is not constant.
+
+The conclusion supports the preliminary findings in part (a).
+
+**Note:** The problem statement asks us to divide the dataset between X≤69 and X > 69, however, the mean of X is 79. As confirmed on piazza, we can use both 69 and 79 as medians.
+
+
+**(c)**
+
+*Breusch-Pagan Test*
+
+Null Hypothesis: $H_{0}$: Error variance is constant
+Alternate Hypothesis: $H_{1}$: Error variance is not constant
+
+```{r}
+ei2 = ei^2
+f = lm(ei2~crime_data$X)
+summary(f)
+
+#to find SSE(R) and SSR(R)
+anova(f)
+
+#to find SSE(F) and SSR(F)
+anova(lm_crime)
+
+```
+
+
+```{r}
+
+SSR_R = 2.9640e+11 
+SSE_R = 4.0843e+15 
+
+SSR_F = 93462942
+SSE_F= 455273165
+
+n = nrow(crime_data)
+
+#chi-squared: [SSR(R)/2] / [SSE(F)/n]^2  
+chiTest = (SSR_R/2) / ((SSE_F/n))^2
+print(chiTest)
+
+
+#p 
+chi = qchisq(1-0.05,1)
+print(chi)
+
+```
+
+
+Decision Rule:
+
+- If $chiTest \leq \chi^{2}(1-\alpha,1)$, conclude $H_{0}$: constant error variance
+
+- If $chiTest > \chi^{2}(1-\alpha,1)$, conclude $H_{1}$: non-constant error variance 
+
+
+Result:
+Since $0.005045017 \leq 3.841459$ i.e. $chiTest \leq \chi^{2}(1-\alpha,1)$, we conclude $H_{0}$. The error variance is constant.
+
+**This conclusion is inconsistent with the conclusions in part(a) and part(b) (using 69 as the dividing criteria).**
+
+
+**Solution 4:**
+
+**(a)**
+
+```{r}
+plastic_data = read.csv("Plastic Hardness.csv")
+lm_plastic = lm(Y~X, data=plastic_data)
+summary(lm_plastic)
+```
+
+Regression Function: $Y = 168.6+2.03438*X$
+
+
+```{r}
+build_residual_qq(lm=lm_plastic, df=plastic_data, rse=3.234)
+
+```
+
+
+*Interpretation:*
+
+*Fitted vs. Residual Plot:* The residuals are equally spread and don't have a pattern. Thus, we can say that, the error term has a constant variance.
+
+*Normal Probability Plot:* The plot seems to be non-linear, which means that the error is not in agreement with the normality.
+
+
+**(b)**
+
+```{r}
+confint(lm_plastic, level=1-0.1/2)
+```
+
+*Interpretation:*
+
+We can say with 90% family confidence coefficient that both of the above intervals for $\beta_{0}$ and $\beta_{1}$ are correct based on the given sample.
+
+
+**(c)**
+
+```{r}
+mean(plastic_data$X)
+```
+
+Thus, $\bar{X} > 0$ which means that $\beta_{0}$ and $\beta_{1}$ are negatively correlated. This is to balance the effect of one coefficient on the response, by the other coefficient. So if $\beta_{1}$ is too high, $\beta_{0}$ is likely to be too low to balance out the effect of $\beta_{1}$ on Y.
+
+The joint confidence intervals in part (b) do support this view.
+
+**(d)**
+
+```{r}
+alpha = 0.1
+Xh = data.frame(X=c(20,30,40))
+CI = predict(lm_plastic, Xh, se.fit=TRUE, level=1-alpha)
+B = qt(1-alpha/(2*nrow(Xh)), lm_plastic$df)
+
+est_resp_CI = t(
+rbind(
+"Xh" = array(t(Xh)),
+"fit" = array(CI$fit),
+"lower.B" = array(CI$fit-B* CI$se.fit),
+"upper.B" = array(CI$fit+B* CI$se.fit)
+)
+)
+
+est_resp_CI
+```
+
+*Interpretation:*
+
+Family confidence coefficient means that the obtained confidence intervals, for several mean responses, are simultaneously accurate with a confidence coefficient of $1-\alpha$.
+
+**(e)**
+
+```{r}
+Xh = data.frame(X=c(30,40))
+g = nrow(Xh)
+
+alpha = 0.1
+CI.New = predict(lm_plastic, Xh, se.fit= TRUE, level = 1-alpha)
+B = qt(1 -alpha / (2*g), lm_plastic$df)
+S = sqrt( g * qf( 1 -alpha, g, lm_plastic$df))
+spred = sqrt( CI.New$residual.scale^2 + (CI.New$se.fit)^2 ) # (2.38)
+
+print(B)
+print(S)
+
+```
+
+*Interpretation:*
+
+Thus, we can see that the most efficient procedure is the Bonferroni using t-distribution (compared to Scheffe using F-distribution) as it will yeild tighter linits (since B<S).
+
+```{r}
+pred_new_CI = t(
+rbind(
+"Xh" = array(t(Xh)),
+"s.pred" = array(spred),
+"fit" = array(CI.New$fit),
+"lower.B" = array(CI.New$fit-B * spred),
+"upper.B" = array(CI.New$fit+ B * spred))
+)
+
+pred_new_CI
+```
+
+
+**Solution 5:**
+
+```{r}
+cdi = read.csv("CDI.csv")
+lm_cdi = lm(Number.of.active.physicians~Total.population, data=cdi)
+summary(lm_cdi)
+```
+
+**(a)**
+
+```{r}
+confint(lm_cdi, level=1-0.05/2)
+```
+
+**(b)**
+
+Both the values suggested by the investigator fall within the 95% joint confidence intervals obtained for $\beta_{1}$ and $\beta_{0}$ in part(a). Thus, the results in part(a) support the view of the investigator.
+
+**(c)**
+
+```{r}
+Xh = data.frame(Total.population=c(500,1000,5000))
+g = nrow(Xh)
+alpha = 0.1
+
+CI = predict(lm_cdi, Xh, se.fit= TRUE, level = 1-alpha)
+B = qt(1 -alpha / (2*g), lm_cdi$df)
+W = sqrt(2*qf(1-alpha, 2, lm_cdi$df))
+
+print(B)
+print(W)
+
+```
+
+*Interpretation:*
+
+Thus, we can see that the most efficient procedure is the Bonferroni using t-distribution (compared to Working-Hotelling using F-distribution) as it will yeild tighter limits (since B<F).
+
+
+**(d)**
+
+```{r}
+est_resp_CI = t(
+rbind(
+"Xh" = array(t(Xh)),
+"s.pred" = array(CI$se.fit),
+"fit" = array(CI$fit),
+"lower.B" = array(CI$fit-B * CI$se.fit),
+"upper.B" = array(CI$fit+ B * CI$se.fit))
+)
+
+est_resp_CI
+
+```
+
+*Interpretation:*
+
+We can say with 90% family confidence coefficient that all of the above intervals are correct based on the given sample. However, we see that the predicted response (and the intervals) suggest negative values for Number of active physicians which is not practically possible. Thus, our model is not a good fit for our data for counties extremely low values of Total Population.
+
+
+**Solution 6:**
+
+
+**(a)**
+
+
+```{r}
+senic_data = read.csv("SENIC.csv")
+colnames(senic_data)
+```
+
+
+```{r}
+reg_loop <- function(df, x_cols, y_str) {
+  lm_regs = list({})
+  for(i in 1:length(x_cols)){
+    x_str = x_cols[i]
+    formula = as.formula(paste(y_str, "~", x_str))
+    lm_regs[[i]] = lm(formula, data=df)
+    print(paste("Linear Regression Summary:", x_cols[i]))
+    print(summary(lm_regs[[i]]))
+  }
+  lm_regs
+}
+```
+
+
+```{r}
+x_cols = c("Infection.risk", "Available.facilities.and.services", "Routine.chest.X.ray.ratio")
+y_str="Length.of.stay"
+lm_fits = reg_loop(df=senic_data, x_cols=x_cols, y_str=y_str)
+```
+
+Three regression function are: 
+
+- $Length.of.stay = 6.3368 + 0.7604*Infection.risk$
+- $Length.of.stay = 7.71877 + 0.04471*Available.facilities.and.services$
+- $Length.of.stay = 6.566373 + 0.037756*Routine.chest.X.ray.ratio$
+
+**(b)**
+
+```{r}
+rse = c(1.624, 1.795, 1.774)
+for(i in 1:length(x_cols)){
+  df = senic_data
+  lm = lm_fits[[i]]
+  ei = lm$residuals
+  X = array(df[,x_cols[i]])
+  
+  par(mfrow=c(1,1))
+  plot(X, ei, xlab=x_cols[i], ylab="Residuals")
+  title(main="Fitted Values vs. Residuals")
+  
+  
+  ri = rank(ei)
+  n = nrow(df)
+  zr = (ri-0.375)/(n+0.25)
+  
+  #residual standard error from summary(lm) above
+  zr1 = rse[i]*qnorm(zr)
+  
+  print(cor.test(zr1, ei))
+  
+  plot(zr1, ei, xlab="Expected Value under Normality",ylab="Residuals")
+  title(main="Normal Probability Plot")
+  
+    }
+```
+
+```{r}
+for(i in 1:length(x_cols)){
+  ei = lm_fits[[i]]$residuals
+  print(which(ei>6))
+}
+```
+
+*Interpretation:*
+
+- For all three variables, we see that the residuals plotted against X and the normal probability plots show constant variance and conformity to normality, except for two outliers that have residuals $>6$. 
+- As seen above, the outliers are the obervations: 47 and 112.
+
+
+**(c)**
+
+```{r}
+senic_data2 = senic_data[-c(47,112),]
+nrow(senic_data2)
+```
+
+
+```{r}
+lm_senic = lm(Length.of.stay~Infection.risk, data=senic_data2)
+```
+
+
+```{r}
+Xh = data.frame(Infection.risk=c(6.5,5.9))
+alpha = 0.05
+
+CI.New.Ind = predict(lm_senic, Xh, se.fit= TRUE,interval = "prediction" ,level = 1-alpha)
+
+CI.New.Ind
+
+```
+
+
+```{r}
+senic_data[c(47,112),]
+
+```
+
+*Interpretation:*
+
+The observation Y47 and Y112 fall outside the individual confidence intervals obtained above.
+
+
+
+
