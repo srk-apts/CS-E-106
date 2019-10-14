@@ -1,0 +1,500 @@
+---
+title: '**CS-E-106: Data Modeling**'
+subtitle: '**Assignment 4**'
+date: '**Due Date:** 10/14/2019'
+author:
+  - '**Instructor: Hakan Gogtas**'
+  - '**Submitted by:** Saurabh Kulkarni'
+output:
+  pdf_document: default
+---
+
+ 
+**Solution 1:**
+
+**(a)**
+
+```{r}
+par(mfrow=c(1,1))
+prod_time_data = read.csv("Production Time.csv")
+plot(prod_time_data$X, prod_time_data$Y)
+title(main="Scatter Plot Original Data")
+
+```
+
+A linear relation does not seem adequate here. Based on the scatterplot, there seems to be a curvilinear relation between X and Y and for the same reasone we need a transormation on either X or Y.
+
+**(b)**
+
+```{r}
+X1 = sqrt(prod_time_data$X)
+prod_time_data2 = cbind(X1, prod_time_data)
+lm_prod = lm(Y~X1, data=prod_time_data2)
+summary(lm_prod)
+```
+
+The regression function on *transformed data*: $Y = 1.2547 + 3.6235*X1$ 
+
+**(c)**
+
+```{r}
+par(mfrow=c(1,1))
+plot(prod_time_data2$X1, prod_time_data2$Y, xlab=expression(sqrt(X)), ylab="Y")
+title(main="Fitted Regression Line on Transformed Data")
+abline(lm_prod)
+```
+
+Yes, the regression line appears to be a good fit on transformed data.
+
+**(d)**
+
+```{r}
+build_residual_qq <- function(lm, df, rse){
+  ei = lm$residuals
+  fitted_values = lm$fitted.values
+  
+  par(mfrow=c(1,1))
+  plot(fitted_values, ei, xlab="Fitted Values", ylab="Residuals")
+  title(main="Fitted Values vs. Residuals")
+  
+  
+  ri = rank(ei)
+  n = nrow(df)
+  zr = (ri-0.375)/(n+0.25)
+  
+  #residual standard error from summary(lm) above
+  zr1 = sqrt(rse)*qnorm(zr)
+  
+  print(cor.test(zr,zr1))
+  
+  plot(ei,zr1,xlab="Ordered Residuals",ylab="Expected Value under Normality")
+  title(main="Normal Probability Plot")
+    
+}
+
+build_residual_qq(lm=lm_prod, df=prod_time_data2, rse=1.99)
+
+```
+
+*Residual Plot:* There seems to be a no ouliers or no visible non-linearity. We can say that there is contant variance in the error term.
+
+*Normal Probability Plot:* The plot seems to be almost linear, which means that the error is in agreement with the normality. 
+
+
+**(e)**
+
+The regression function in *original units*: $Y = 1.2547 + 3.6235*\sqrt{X}$
+
+
+**Solution 2:**
+
+**(a)**
+
+```{r}
+solution_data = read.csv("Solution Concentration.csv")
+lm_soln = lm(Y~X, data=solution_data)
+summary(lm_soln)
+```
+The regression function for *original data*: $Y = 2.5753 - 0.3240*X$
+
+```{r}
+build_residual_qq(lm=lm_soln, df=solution_data, rse=0.4743)
+
+```
+
+*Residual Plot:* We can see a clear non-linearity in the error terms with three outliers at the right extremity. The error term does not have constant variance.
+
+*Normal Probability Plot:* The plot seems to be non-linear, which means that the error is not in agreement with the normality. 
+
+
+**(b)**
+
+```{r}
+plot(solution_data$X, solution_data$Y)
+```
+
+Since the value of Y seems to be decreasing with the value of X and then smoothing out eventually, it seems like a logarithmic function. Thus I would like to try to transform Y to log(Y).
+
+**(c)**
+
+```{r}
+library(MASS)
+par(mfrow=c(1,1))
+boxcox(lm_soln, lambda=c(-.2,-.1,0, .1, .2))
+
+```
+
+The suggested Y transformation with Box-Cox method is: $\lambda \approx 0.02$, which very close to 0. Thus, we'll assume the suggested $\lambda = 0$, which implies $Y' = log(Y)$.
+
+**(d)**
+
+```{r}
+Y1 = log(solution_data$Y)
+solution_data = cbind(solution_data, Y1)
+
+```
+
+
+```{r}
+lm_soln_t = lm(Y1~X, data=solution_data)
+summary(lm_soln_t)
+```
+
+The regression function with *transformed data*: $Y' = 1.50792 - 0.44993*X $
+
+**(e)**
+
+```{r}
+par(mfrow=c(1,1))
+plot(solution_data$X, solution_data$Y1, xlab="X", ylab=expression(log(Y)))
+abline(lm_soln_t)
+title(main="Fitted Regression Line on Transformed Data")
+```
+
+The estimated regression appears to be a good fit to the transformed data.
+
+**(f)**
+
+```{r}
+build_residual_qq(lm=lm_soln_t, df=solution_data, rse=0.115)
+
+
+```
+
+
+*Residual Plot:* There seems to be a no ouliers or no visible non-linearity. We can say that there is contant variance in the error term.
+
+*Normal Probability Plot:* The plot seems to be almost linear, which means that the error is in agreement with the normality. 
+
+
+**(g)**
+
+The regression function with transformed data (in original units): $\log{Y} = 1.50792 - 0.44993*X $
+
+
+
+**Solution 3:**
+
+**(a)**
+
+```{r}
+crime_data = read.csv("Crime Rate.csv")
+lm_crime = lm(Y~X, data=crime_data)
+summary(lm_crime)
+ei = lm_crime$residuals
+```
+
+The regression function: $Y = 20517.60 - 170.58*X$
+
+
+```{r}
+build_residual_qq(lm=lm_crime, df=crime_data, rse=2356)
+```
+
+*Residual Plot:* There seems to be a few ouliers or no visible non-linearity. The error term does not have constant variance.
+
+*Normal Probability Plot:* The plot seems to be almost linear, which means that the error is in agreement with the normality
+
+**(b)**
+
+Null Hypothesis: $H_{0}$: Error variance is constant
+Alternate Hypothesis: $H_{1}$: Error variance is not constant
+
+
+```{r}
+df = data.frame(cbind(crime_data$Y,crime_data$X,ei))
+df1 = df[df[,2]<=69,]
+df2 = df[df[,2]>69,]
+
+med1 = median(df1[,3])
+med2 = median(df2[,3])
+
+#n1
+n1 = nrow(df1)
+print(n1)
+
+#n2
+n2 = nrow(df2)
+print(n2)
+
+d1 = abs(df1[,3]+med1)
+d2 = abs(df2[,3]+med2)
+
+#calculate means for our answer 
+mean_d1 = mean(d1)
+print(mean_d1)
+mean_d2 = mean(d2)
+print(mean_d2)
+
+s2 = (var(d1)*(n1-1)+var(d2)*(n2-1))/(120-2)
+print(s2)
+
+#calculate s
+s = sqrt(s2)
+print(s)
+
+#testStastic = (mean.d1 - mean.d2) / (s * sqrt((1/n1)+1/n2)
+testStastic = (mean_d1-mean_d2)/(s*sqrt((1/n1)+(1/n2)))  
+print(testStastic)
+
+t = qt(0.95, 118) 
+print(t)
+
+```
+
+Decision Rule:
+
+- If $|testStatistic| \leq t(1-\alpha/2,n-2)$, conclude $H_{0}$: constant error variance
+
+- If $|testStatistic| > t(1-\alpha/2,n-2)$, conclude $H_{1}$: non-constant error variance 
+
+
+Result:
+Since $|1.957763| > 1.65787$ i.e. $|testStatistic| \leq t(1-\alpha/2,n-2)$, we conclude $H_{1}$. The error variance is not constant.
+
+
+**(c)**
+
+```{r}
+ei2 = ei^2
+f = lm(ei2~crime_data$X)
+summary(f)
+
+#to find SSE(R) and SSR(R)
+anova(f)
+
+#to find SSE(F) and SSR(F)
+anova(lm_crime)
+
+```
+
+
+```{r}
+
+SSR_R = 2.9640e+11 
+SSE_R = 4.0843e+15 
+
+SSR_F = 93462942
+SSE_F= 455273165
+
+n = nrow(crime_data)
+
+#chi-squared: [SSR(R)/2] / [SSE(F)/n]^2  
+chi = (SSR_R/2) / ((SSE_F/n))^2
+print(chi)
+
+
+#p 
+p = 1-pchisq(chi,2,n)
+print(p)
+
+```
+
+**Solution 4:**
+
+**(a)**
+
+```{r}
+plastic_data = read.csv("Plastic Hardness.csv")
+lm_plastic = lm(Y~X, data=plastic_data)
+summary(lm_plastic)
+```
+
+
+```{r}
+ei = lm_plastic$residuals
+fitted_values = lm_plastic$fitted.values
+
+par(mfrow=c(1,1))
+plot(fitted_values, ei)
+title(main="Fitted Values vs. Residuals")
+```
+
+
+```{r}
+ri = rank(ei)
+n = nrow(plastic_data)
+zr = (ri-0.375)/(n+0.25)
+
+#residual standard error = 3.234 from summary(lm) above
+zr1 = sqrt(3.234)*qnorm(zr)
+
+cor.test(zr,zr1)
+
+plot(ri,zr1,xlab="ordered Residuals",ylab="Expected Value under Normality")
+title(main="Normal Probability Plot")
+```
+
+**(b)**
+
+```{r}
+confint(lm_plastic, level=1-0.1/2)
+```
+
+**(c)**
+
+```{r}
+```
+
+
+**(d)**
+
+```{r}
+alpha = 0.1
+Xh = data.frame(X=c(20,30,40))
+pred = predict(lm_plastic, Xh , se.fit=TRUE, interval="confidence", level=1-alpha)
+B = rep(qt(1-alpha/(2*nrow(Xh)), lm_plastic$df),nrow(Xh))
+rbind(pred$fit-B* pred$se.fit, pred$fit+B* pred$se.fit)
+```
+
+**(e)**
+
+```{r}
+Xh = data.frame(X=c(30,40))
+g = nrow(Xh)
+alpha = 0.1
+CI.New = predict.lm(lm_plastic, Xh, se.fit= TRUE, level = 1-alpha)
+M  = rbind(rep(qt(1 -alpha / (2*g), lm_plastic$df),g), rep(sqrt( g * qf( 1 -alpha, g, lm_plastic$df)),g))
+spred = sqrt( CI.New$residual.scale^2 + (CI.New$se.fit)^2 ) # (2.38)
+pred.new = t(rbind(
+"Yh" = Xh,
+"s.pred" = spred,
+"fit" = CI.New$fit,
+"lower.B" = CI.New$fit-M[1,] * spred,
+"upper.B" = CI.New$fit+ M[1,] * spred,
+"lower.S" = CI.New$fit-M[2,] * spred,
+"upper.S" = CI.New$fit+ M[2,] * spred))
+
+pred.new
+```
+
+**Solution 5:**
+
+```{r}
+cdi = read.csv("CDI.csv")
+lm_cdi = lm(Number.of.active.physicians~Total.population, data=cdi)
+summary(lm_cdi)
+```
+
+**(a)**
+
+```{r}
+confint(lm_cdi, level=1-0.05/2)
+```
+
+**(b)**
+
+
+**(c)**
+
+**(d)**
+
+```{r}
+alpha = 0.1
+df = lm_cdi$df
+Xh = data.frame(Total.population=c(500,1000,5000))
+```
+
+```{r}
+W = sqrt(2*qf(1-alpha,2,df))
+CI = predict(lm_cdi, Xh, se.fit=TRUE, interval="confidence", level=1-alpha)
+cbind(CI$fit[,1]-W*CI$se.fit, CI$fit[,1]+W*CI$se.fit)
+```
+
+
+```{r}
+pred = predict(lm_cdi, Xh , se.fit=TRUE, interval="confidence", level=1-alpha)
+B = rep(qt(1-alpha/(2*nrow(Xh)),df),nrow(Xh))
+rbind(pred$fit-B* pred$se.fit, pred$fit+B* pred$se.fit)
+```
+
+**Solution 6:**
+
+**(a)**
+
+
+```{r}
+senic_data = read.csv("SENIC.csv")
+colnames(senic_data)
+```
+
+
+```{r}
+reg_loop <- function(df, x_cols, y_str) {
+  lm_regs = list({})
+  for(i in 1:length(x_cols)){
+    x_str = x_cols[i]
+    formula = as.formula(paste(y_str, "~", x_str))
+    lm_regs[[i]] = lm(formula, data=df)
+    print(paste("Linear Regression Summary:", x_cols[i]))
+    print(summary(lm_regs[[i]]))
+  }
+  lm_regs
+}
+```
+
+
+```{r}
+x_cols = c("Infection.risk", "Available.facilities.and.services", "Routine.chest.X.ray.ratio")
+y_str="Length.of.stay"
+lm_fits = reg_loop(df=senic_data, x_cols=x_cols, y_str=y_str)
+```
+
+
+```{r}
+rse = c(1.624, 1.795, 1.774)
+for(i in 1:length(x_cols)){
+  ei = lm_fits[[i]]$residuals
+  fitted_values = lm_fits[[i]]$fitted.values
+  
+  par(mfrow=c(1,1))
+  plot(fitted_values, ei)
+  title(main=paste("Fitted Values vs. Residuals: ", x_cols[i]))
+  
+  
+  ri = rank(ei)
+  n = nrow(senic_data)
+  zr = (ri-0.375)/(n+0.25)
+  
+  #residual standard error = 2356 from summary(lm) above
+  zr1 = sqrt(rse[i])*qnorm(zr)
+  
+  cor.test(zr,zr1)
+  
+  plot(ri,zr1,xlab="ordered Residuals",ylab="Expected Value under Normality")
+  title(main=paste("Normal Probability Plot: ", x_cols[i]))
+    }
+```
+
+**(c)**
+
+```{r}
+senic_data2 = senic_data[-c(47,112),]
+nrow(senic_data2)
+```
+
+
+```{r}
+lm_senic = lm(Length.of.stay~Infection.risk, data=senic_data2)
+```
+
+
+```{r}
+Xh = data.frame(Infection.risk=c(6.5,5.9))
+g = nrow(Xh)
+alpha = 0.05
+CI.New = predict.lm(lm_senic, Xh, se.fit= TRUE, level = 1-alpha)
+M  = rbind(rep(qt(1 -alpha / (2*g), lm_senic$df),g), rep(sqrt( g * qf( 1 -alpha, g, lm_senic$df)),g))
+spred = sqrt( CI.New$residual.scale^2 + (CI.New$se.fit)^2 ) # (2.38)
+pred.new = t(rbind(
+"Yh" = Xh,
+"s.pred" = spred,
+"fit" = CI.New$fit,
+"lower.B" = CI.New$fit-M[1,] * spred,
+"upper.B" = CI.New$fit+ M[1,] * spred,
+"lower.S" = CI.New$fit-M[2,] * spred,
+"upper.S" = CI.New$fit+ M[2,] * spred))
+
+pred.new
+```
+
