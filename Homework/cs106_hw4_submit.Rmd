@@ -191,9 +191,9 @@ The regression function: $Y = 20517.60 - 170.58*X$
 build_residual_qq(lm=lm_crime, df=crime_data, rse=2356)
 ```
 
-*Residual Plot:* There seems to be a few ouliers or no visible non-linearity. The error term does not have constant variance.
+*Residual Plot:* There seems to be a few ouliers and some visible non-linearity. The error term does not have constant variance.
 
-*Normal Probability Plot:* The plot seems to be almost linear, which means that the error is in agreement with the normality
+*Normal Probability Plot:* The plot seems to be non-linear, which means that the error is not in agreement with the normality
 
 **(b)**
 
@@ -237,7 +237,7 @@ print(s)
 testStastic = (mean_d1-mean_d2)/(s*sqrt((1/n1)+(1/n2)))  
 print(testStastic)
 
-t = qt(0.95, 118) 
+t = qt(1-0.05, 118) 
 print(t)
 
 ```
@@ -254,6 +254,9 @@ Since $|1.957763| > 1.65787$ i.e. $|testStatistic| \leq t(1-\alpha/2,n-2)$, we c
 
 
 **(c)**
+
+Null Hypothesis: $H_{0}$: Error variance is constant
+Alternate Hypothesis: $H_{1}$: Error variance is not constant
 
 ```{r}
 ei2 = ei^2
@@ -280,15 +283,29 @@ SSE_F= 455273165
 n = nrow(crime_data)
 
 #chi-squared: [SSR(R)/2] / [SSE(F)/n]^2  
-chi = (SSR_R/2) / ((SSE_F/n))^2
-print(chi)
+chiTest = (SSR_R/2) / ((SSE_F/n))^2
+print(chiTest)
 
 
 #p 
-p = 1-pchisq(chi,2,n)
-print(p)
+chi = qchisq(1-0.05,1)
+print(chi)
 
 ```
+
+
+Decision Rule:
+
+- If $chiTest \leq \chi^{2}(1-\alpha,1)$, conclude $H_{0}$: constant error variance
+
+- If $chiTest > \chi^{2}(1-\alpha,1)$, conclude $H_{1}$: non-constant error variance 
+
+
+Result:
+Since $0.005045017 \leq 3.841459$ i.e. $chiTest \leq \chi^{2}(1-\alpha,1)$, we conclude $H_{0}$. The error variance is constant.
+
+**This conclusion is inconsistent with conclusions in part(a) and part(b).**
+
 
 **Solution 4:**
 
@@ -302,28 +319,15 @@ summary(lm_plastic)
 
 
 ```{r}
-ei = lm_plastic$residuals
-fitted_values = lm_plastic$fitted.values
-
-par(mfrow=c(1,1))
-plot(fitted_values, ei)
-title(main="Fitted Values vs. Residuals")
+build_residual_qq(lm=lm_plastic, df=plastic_data, rse=3.234)
 ```
 
 
-```{r}
-ri = rank(ei)
-n = nrow(plastic_data)
-zr = (ri-0.375)/(n+0.25)
+*Residual Plot:* There seems to be some visible non-linearity. The error term does not have constant variance.
 
-#residual standard error = 3.234 from summary(lm) above
-zr1 = sqrt(3.234)*qnorm(zr)
+*Normal Probability Plot:* The plot seems to be non-linear, which means that the error is not in agreement with the normality
 
-cor.test(zr,zr1)
 
-plot(ri,zr1,xlab="ordered Residuals",ylab="Expected Value under Normality")
-title(main="Normal Probability Plot")
-```
 
 **(b)**
 
@@ -334,8 +338,10 @@ confint(lm_plastic, level=1-0.1/2)
 **(c)**
 
 ```{r}
+mean(plastic_data$X)
 ```
 
+Thus, $\bar{X} > 0$ which means that $\beta_{0}$ and $\beta_{1}$ are negatively correlated. This is to balance the effect of one coefficient on the response, by the other coefficient. So if $\beta_{1}$ is too high, $\beta_{0}$ is likely to be too low to balance out the effect of $\beta_{1}$ on Y.
 
 **(d)**
 
@@ -352,18 +358,28 @@ rbind(pred$fit-B* pred$se.fit, pred$fit+B* pred$se.fit)
 ```{r}
 Xh = data.frame(X=c(30,40))
 g = nrow(Xh)
+
 alpha = 0.1
-CI.New = predict.lm(lm_plastic, Xh, se.fit= TRUE, level = 1-alpha)
+CI.New = predict(lm_plastic, Xh, se.fit= TRUE, level = 1-alpha)
 M  = rbind(rep(qt(1 -alpha / (2*g), lm_plastic$df),g), rep(sqrt( g * qf( 1 -alpha, g, lm_plastic$df)),g))
 spred = sqrt( CI.New$residual.scale^2 + (CI.New$se.fit)^2 ) # (2.38)
-pred.new = t(rbind(
-"Yh" = Xh,
+pred.new = cbind(rbind(
+"Xh" = Xh[1,],
 "s.pred" = spred,
 "fit" = CI.New$fit,
 "lower.B" = CI.New$fit-M[1,] * spred,
 "upper.B" = CI.New$fit+ M[1,] * spred,
+"lower.S" = CI.New$fit-M[1,] * spred,
+"upper.S" = CI.New$fit+ M[1,] * spred),
+rbind(
+"Xh" = Xh[2,],
+"s.pred" = spred,
+"fit" = CI.New$fit,
+"lower.B" = CI.New$fit-M[2,] * spred,
+"upper.B" = CI.New$fit+ M[2,] * spred,
 "lower.S" = CI.New$fit-M[2,] * spred,
-"upper.S" = CI.New$fit+ M[2,] * spred))
+"upper.S" = CI.New$fit+ M[2,] * spred)
+)
 
 pred.new
 ```
