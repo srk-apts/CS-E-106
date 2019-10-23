@@ -1,0 +1,66 @@
+---
+title: "Lecture07-code"
+output: pdf_document
+---
+
+```{r}
+DwaineStudio = read.csv("DwaineStudio.csv")
+f = lm(Y~., data=DwaineStudio)
+summary(f)
+```
+
+```{r}
+names(f)
+```
+
+```{r}
+f$model
+```
+
+
+```{r}
+plot(f)
+```
+
+
+```{r}
+confint(f, level=0.9)
+```
+
+
+```{r}
+anova(f)
+```
+
+
+```{r}
+names(anova(f))
+```
+
+```{r}
+anova(f)$`Sum Sq`
+```
+
+```{r}
+SST = sum(anova(f)$`Sum Sq`)
+```
+
+
+```{r}
+R2 = 1-(2180.9274/SST)
+R2
+```
+
+
+```{r}
+cor(DwaineStudio)
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
