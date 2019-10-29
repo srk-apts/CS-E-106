@@ -1,0 +1,356 @@
+---
+title: '**CS-E-106: Data Modeling**'
+subtitle: '**Assignment 5**'
+date: '**Due Date:** 11/04/2019'
+author:
+  - '**Instructor: Hakan Gogtas**'
+  - '**Submitted by:** Saurabh Kulkarni'
+output:
+  pdf_document: 
+    latex_engine: xelatex
+---
+
+```{r}
+library(ggplot2)
+library(MASS)
+library(lattice)
+```
+
+
+**Solution 1:**
+
+**Solution 2:**
+
+**(a)**
+
+```{r}
+brand_data = read.csv("Brand Preference.csv")
+splom(brand_data)
+```
+
+
+```{r}
+library(corrgram)
+corrgram(brand_data, order=TRUE, lower.panel=panel.shade,
+  upper.panel=panel.pie, text.panel=panel.txt, oma=c(3,3,3,15),
+  main="Correlogram")
+cor(brand_data)
+```
+
+**(b)**
+
+```{r}
+lm_brand = lm(Y~., data=brand_data)
+summary(lm_brand)
+```
+
+Estimated Regression Function: $Y = 37.65+4.425*X1+4.375*X1$
+
+**(c)**
+
+```{r}
+ei = lm_brand$residuals
+boxplot(ei)
+title(main="Boxplot of Residuals")
+```
+
+**(d)**
+
+```{r}
+plot(lm_brand$fitted.values, ei)
+plot(brand_data$X1, ei)
+plot(brand_data$X2, ei)
+plot(brand_data$X1*brand_data$X2, ei)
+
+```
+
+
+```{r}
+df=brand_data
+rse=2.693
+
+ri = rank(ei)
+n = nrow(df)
+zr = (ri-0.375)/(n+0.25)
+
+#residual standard error from summary(lm) above
+zr1 = rse*qnorm(zr)
+
+print(cor.test(zr1, ei))
+
+plot(zr1, ei, xlab="Expected Value under Normality",ylab="Residuals")
+title(main="Normal Probability Plot")
+```
+
+**(e)**
+
+```{r}
+ei2 = ei^2
+f = lm(ei2~brand_data$X1+brand_data$X2)
+summary(f)
+
+#to find SSE(R) and SSR(R)
+anova(f)
+
+#to find SSE(F) and SSR(F)
+anova(lm_brand)
+```
+
+
+```{r}
+
+SSR_R = 67.34+5.06
+SSE_R = 494.35 
+
+SSR_F = 1566.45+306.25
+SSE_F= 94.30
+
+n = nrow(brand_data)
+
+#chi-squared: [SSR(R)/2] / [SSE(F)/n]^2  
+chiTest = (SSR_R/2) / ((SSE_F/n))^2
+print(chiTest)
+
+
+#p 
+chi = qchisq(1-0.05,1)
+print(chi)
+
+```
+
+**Solution 3:**
+
+**(a)**
+
+
+```{r}
+df_brand = lm_brand$df.residual
+alpha = 0.01
+
+SSR_X1 = anova(lm_brand)[1,2]
+SSR_X2 = anova(lm_brand)[2,2]
+SSE = anova(lm_brand)[3,2]
+MSR_X1 = SSR_X1/1
+MSR_X2 = SSR_X2/1
+MSE = SSE/df
+print(MSE)
+
+F_star_X1 = MSR_X1/MSE
+print(F_star_X1)
+
+F_star_X2 = MSR_X2/MSE
+print(F_star_X2)
+
+F_db = qf(1-alpha, 1, df_brand) 
+print(F_db)
+
+```
+
+**(b)**
+
+
+```{r}
+alpha = 0.01
+g = length(lm_brand$coefficients)
+confint(lm_brand, level = 1-alpha/g)
+```
+
+
+**(c)**
+
+```{r}
+Xh<-data.frame(X1=5, X2=4)
+predict(lm_brand, Xh,se.fit=TRUE,interval="confidence",level=0.99)
+```
+
+**(d)**
+
+```{r}
+Xh<-data.frame(X1=5, X2=4)
+predict(lm_brand, Xh,se.fit=TRUE,interval="prediction",level=0.99)
+```
+
+**Solution 4:**
+
+**(a)**
+
+```{r}
+properties_data = read.csv("Commercial Properties.csv")
+par(mfrow=c(1,1))
+splom(properties_data, order=TRUE, oma=c(3,3,3,15))
+
+```
+
+
+```{r}
+corrgram(properties_data, order=TRUE, lower.panel=panel.shade,
+  upper.panel=panel.pie, text.panel=panel.txt, oma=c(3,3,3,15),
+  main="Correlogram")
+cor(properties_data)
+```
+
+**(b)**
+
+```{r}
+lm_prop = lm(Y~., data=properties_data)
+summary(lm_prop)
+```
+
+Regression Function: $Y = 12.2-0.142*X1+0.282*X2+0.6193*X3+7.924e-06*X4$
+
+**(c)**
+
+```{r}
+ei = lm_prop$residuals
+qqmath(ei)
+```
+
+
+**(d)**
+
+```{r}
+df = properties_data
+rse = 1.137
+
+ri = rank(ei)
+n = nrow(df)
+zr = (ri-0.375)/(n+0.25)
+
+#residual standard error from summary(lm) above
+zr1 = rse*qnorm(zr)
+
+print(cor.test(zr1, ei))
+
+plot(zr1, ei, xlab="Expected Value under Normality",ylab="Residuals")
+title(main="Normal Probability Plot")
+```
+
+
+```{r}
+plot(properties_data$Y, ei)
+plot(properties_data$X1, ei)
+plot(properties_data$X2, ei)
+plot(properties_data$X3, ei)
+plot(properties_data$X4, ei)
+plot(properties_data$X1*properties_data$X2, ei)
+plot(properties_data$X1*properties_data$X3, ei)
+plot(properties_data$X1*properties_data$X4, ei)
+plot(properties_data$X2*properties_data$X3, ei)
+plot(properties_data$X2*properties_data$X4, ei)
+plot(properties_data$X3*properties_data$X4, ei)
+```
+
+**(e)**
+
+```{r}
+ei = lm_prop$residuals
+fitted_df = data.frame(fitted_values = lm_prop$fitted.values)
+df = data.frame(cbind(properties_data, fitted_df, ei))
+df = df[order(df$fitted_values),]
+```
+
+
+```{r}
+df1 = df[1:40,]
+df2 = df[41:nrow(df),]
+
+med1 = median(df1$ei)
+med2 = median(df2$ei)
+
+#n1
+n1 = nrow(df1)
+print(n1)
+
+#n2
+n2 = nrow(df2)
+print(n2)
+
+d1 = abs(df1$ei-med1)
+d2 = abs(df2$ei-med2)
+
+#calculate means for our answer 
+mean_d1 = mean(d1)
+print(mean_d1)
+mean_d2 = mean(d2)
+print(mean_d2)
+
+s2 = (var(d1)*(n1-1)+var(d2)*(n2-1))/(n1+n2-2)
+print(s2)
+
+#calculate s
+s = sqrt(s2)
+print(s)
+
+#testStastic = (mean.d1 - mean.d2) / (s * sqrt((1/n1)+1/n2)
+testStastic = (mean_d1-mean_d2)/(s*sqrt((1/n1)+(1/n2)))  
+print(testStastic)
+
+t = qt(1-0.05, 118) 
+print(t)
+
+```
+
+**Solution 5:**
+
+**(a)**
+
+```{r}
+X1 = c(4.0,6.0,12.0)
+X2 = c(10.0,11.5,12.5)
+X3 = c(0.1,0,0.32)
+X4 = c(80000,120000,340000)
+Xh = data.frame(X1, X2, X3, X4)
+
+alpha = 0.05
+g = nrow(Xh)
+
+```
+
+
+```{r}
+predict(lm_prop, Xh, se.fit=TRUE, interval="prediction", level=1-alpha)
+```
+
+
+```{r}
+CI = predict(lm_prop, Xh, se.fit=TRUE, interval="confidence", level=1-alpha/g)
+CI
+```
+
+
+```{r}
+p = length(lm_prop$coefficients)
+n = nrow(properties_data)
+B = qt(1-alpha/(2*g), n-p)
+s = CI$se.fit
+Yh = CI$fit[,1]
+
+est_resp_CI = t(
+rbind(
+"Xh" = t(Xh),
+"fit" = array(Yh),
+"lower.B" = array(Yh-B*s),
+"upper.B" = array(Yh+B*s)
+)
+)
+
+est_resp_CI
+
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
