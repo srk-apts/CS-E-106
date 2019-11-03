@@ -1,0 +1,321 @@
+---
+title: '**CS-E-106: Data Modeling**'
+subtitle: '**Assignment 2**'
+date: '**Due Date:** 09/30/2019'
+author:
+  - '**Instructor: Hakan Gogtas**'
+  - '**Submitted by:** Saurabh Kulkarni'
+output:
+  pdf_document: default
+---
+
+**Solution 1:**
+
+
+*Regression Model:* $Y_{i} = \beta_{1}*X_{i} + \epsilon_{i}$
+
+$f(y_{i}) = f_{i} = \frac{1}{\sqrt{2*pi}*\sigma}\exp(-\frac{1}{2}(\frac{y_{i}-\beta_{1}*X_{i}}{\sigma})^{2})$
+
+*Likelihood Function:*
+$L(\beta_{1},\sigma^{2}) = \prod_{i=1}^{n}f_{i} = (2\pi)^{\frac{-n}{2}}\sigma^{-n}\exp(\frac{-1}{2}\sum_{i=1}^{n}(\frac{y_{i}-\beta_{1}*X_{i}}{\sigma})^{2})$
+
+*Goal:* Choose values $\hat{\beta_{1}}$, $\hat{\sigma^2}$ that maximize L (or l = ln(L))
+
+$l = \frac{-n}{2}ln(2\pi)-\frac{n}{2}ln(\sigma^{2}) -\frac{1}{2}\sum_{i=1}^{n}(\frac{y_{i}-\beta_{1}*X_{i}}{\sigma})^{2}$
+
+*Calculating optimal $\beta_{1}$:*
+
+$\frac{\partial{l}}{\partial{\beta_{1}}} = 2\sum_{i=1}^{n}(\frac{y_{i}-\beta_{1}*X_{i}}{\sigma})(-X_{i})=^{set} 0$
+
+$\implies \sum_{i=1}^{n}X_{i}y_{i} = \beta_{1}\sum_{i=1}^{n}X_{i}^{2}$
+
+$\implies \beta_{1} = \frac{\sum_{i=1}^{n}X_{i}y_{i}}{\sum_{i=1}^{n}X_{i}^2}$
+
+*Calculating optimal $\hat{\sigma_{2}}$:*
+
+$\frac{\partial{l}}{\partial{\sigma^{2}}} = -\frac{n}{2}(\frac{1}{\sigma^{2}})-(-1)\frac{1}{2}\sum_{i=1}^{n}(\frac{y_{i}-\beta_{1}*X_{i}}{\sigma})^{2} =^{set}0$
+
+$\implies \hat{\sigma^{2}} = \frac{\sum_{i=1}^{n}(y_{i}-\hat{\beta_{1}X_{i})^{2}}}{n}$
+
+
+**Solution 2:**
+
+**(a)**
+
+```{r}
+gpa = read.csv("GPA.csv")
+lm_gpa = lm(GPA~ACT, data=gpa)
+print(summary(lm_gpa))
+
+```
+
+Thus, the estimated regression function is: 
+
+$GPA = 2.11 + 0.039*ACT$
+
+**(b)**
+
+```{r}
+confint(lm_gpa, level=0.99)
+```
+
+We can see that the confidence interval of $\beta_{1}$ does not contain 0. Therefore, there is 99% chance that the $\beta_{1}$ is not actually 0.
+
+
+**(c)**
+
+$t = \frac{b_1}{s(b_1)}$
+
+```{r}
+t = 0.03883/0.01277
+print(t)
+pr_t = 1-pt(t, 118)
+print(pr_t)
+
+```
+
+Based on the t-test, the probability that $beta_{1}$ is greater than 0 is 0.001454. This means that there exists a linear relationship between GPA and ACT.
+
+**Solution 3:**
+
+**(a)**
+
+```{r}
+Xh<-data.frame(ACT=28)
+predict(lm_gpa,Xh,se.fit=TRUE,interval="confidence",level=0.95)
+```
+
+
+*Interpretation:*
+
+- This means that we can predict with 95% confidence that $\beta_{1}$ is within the range: (3.061384, 3.341033)
+- Narrower C.I. means that we are more confident about our fit for $X_{h} = 28$
+- Also, since we are using the entire data set for development of our model, it might give us a better fit on the observation that is within the sample.
+
+**(b)**
+
+```{r}
+Xh<-data.frame(ACT=28)
+predict(lm_gpa,Xh, se.fit=TRUE, interval="prediction",level=0.95)
+```
+
+*Interpretation:*
+
+- This means that we can predict with 95% confidence that $\beta_{1}$ is within the range: (1.959355, 4.443063)
+- This range is considerably larger than that in part a, as we are now calculating the C.I. for an out of sample observation.
+
+**(c)**
+
+Yes, the prediction interval in part (b) is wider than the confidence interval in part (a). This makes sense and is expected, since an observation outside the development model will have wider distribution and more variation.
+
+**(d)**
+
+We will use the formula for Working-Hotelling $1-\alpha$ confidence band for a regression line: 
+
+$\hat{Y_{h}} +_{-} W*s(\hat{Y_{h}})$
+
+where,
+$W = 2F(1-\alpha; 2, n-2)$
+
+```{r}
+Xh<-data.frame(ACT=28)
+W <- sqrt( 2 * qf(0.95,2,118))
+CI<-predict(lm_gpa, Xh, se.fit=TRUE,interval="confidence",level=0.95)
+print(CI)
+cbind(CI$fit[,1]-W*CI$se.fit, CI$fit[,1] + W*CI$se.fit )
+
+```
+
+We see that the band on the regression line at $X_{h}=28$ is wider than that in part (a). This is expected, because in part (a) we use t multiple to calculate the confidence interval, whereas, in part (d) we use W multiple. And W multiple is larger than t since it encompasses the entire regression line whereas C.I. for $E[\hat{Y_{h}}]$ at $X_{h}=28$ applies only to that particular observation.
+
+
+**Solution 4:**
+
+```{r}
+set.seed(1234)
+train_ind = sample(1:nrow(gpa), 0.7 * nrow(gpa))
+test_ind = setdiff(1:nrow(gpa), train_ind)
+train_gpa = gpa[train_ind,]
+test_gpa = gpa[test_ind,]
+
+```
+
+
+```{r}
+lm_gpa_tr = lm(GPA~ACT, data=train_gpa)
+print(summary(lm_gpa_tr))
+
+```
+
+Thus, the regression function based on the development sample becomes:
+
+$GPA = 2.35221 + 0.02772*ACT$
+
+**(a)**
+
+```{r}
+Xh<-data.frame(ACT=28)
+predict(lm_gpa_tr, Xh, se.fit=TRUE, interval="confidence",level=0.95)
+
+```
+
+*Interpretation:*
+
+- This means that we can predict with 95% confidence that $\beta_{1}$ is within the range: (2.953027, 3.303681)
+- Now that we are using the only the training data set for development of our model, we get slightly higher variation in our prediction than in Q.3(a).
+
+
+**(b)**
+
+```{r}
+Xh<-data.frame(ACT=28)
+predict(lm_gpa_tr, Xh, se.fit=TRUE, interval="prediction",level=0.95)
+
+```
+
+*Interpretation:*
+
+- This means that we can predict with 95% confidence that $\beta_{1}$ is within the range: (1.848125, 4.408583)
+- Now that we are using the only the training data set for development of our model, we get slightly higher variation in our prediction than in Q.3(b).
+
+**(c)**
+
+Yes, the prediction interval in part (b) is wider than the confidence interval in part (a). This makes sense and is expected, since an observation outside the development model will have wider distribution and more variation.
+
+
+**(d)**
+
+```{r}
+Xh = data.frame(ACT=28)
+W = sqrt( 2 * qf(0.95,2,82))
+CI = predict(lm_gpa_tr, Xh, se.fit=TRUE,interval="confidence",level=0.95)
+print(CI)
+cbind(CI$fit[,1]-W*CI$se.fit, CI$fit[,1] + W*CI$se.fit )
+
+```
+
+We see that the band on the regression line at $X_{h}=28$ is wider than that in part (a). This is expected, because in part (a) we use t multiple to calculate the confidence interval, whereas, in part (d) we use W multiple. And W multiple is larger than t since it encompasses the entire regression line whereas C.I. for $E[\hat{Y_{h}}]$ at $X_{h}=28$ applies only to that particular observation.
+
+Again, the band is wider than Q.3(d) since we are only using training set for development of our model.
+
+
+*Calculating MSE for the hold-out set:*
+```{r}
+Yhat = predict(lm_gpa_tr, test_gpa)
+resids = (test_gpa$GPA-Yhat)
+SSE = sum(resids^2)
+df_resids = (nrow(test_gpa)-2)
+MSE_te = (SSE/df_resids)
+print(MSE_te)
+
+```
+
+
+**Solution 5:**
+
+**(a)**
+
+$\epsilon_{i} ~ N(0,25)$
+
+$\implies \sigma = \sqrt{25} = 5$
+
+```{r}
+get_xy_data <- function(){
+  X = array(c(4,8,12,16,20))
+  ei = rnorm(5, 0, 5)
+  
+  Y = (20+4*X+ei)
+  xy_data = data.frame(cbind(X,Y))
+  xy_data  
+}
+
+set.seed(1234)
+xy_data = get_xy_data()
+print(xy_data)
+
+```
+
+
+```{r}
+lm_xy = lm(Y~X, data=xy_data)
+summary(lm_xy)
+
+```
+Thus, we have, $Y_{i} = b_{0}+b_{1}*X_{i}$ where $b_{0} = 17.2644$ and $b_{1} = 4.0812$
+
+```{r}
+Xh = data.frame(X=10)
+predict(lm_xy, Xh, se.fit=TRUE, interval="confidence",level=0.95)
+
+```
+
+**(b)**
+
+```{r}
+
+for(i in 1:200){
+  data = get_xy_data()
+  lm = lm(Y~X, data=data)
+  Xh = data.frame(X=10)
+  CI = data.frame(predict(lm, Xh, se.fit=TRUE, interval="confidence",level=0.95)$fit, row.names=NULL)
+  b1 = data.frame(b1 = as.numeric(lm$coefficients[2]))
+  EY = mean(predict(lm, data))
+  if(i==1){
+    df_results = cbind(CI,b1,EY)
+  }
+  else{
+    df_results = rbind(df_results, cbind(CI,b1,EY))
+  }
+  
+}
+
+df_results
+
+```
+
+
+**(c)**
+
+*Histogram of b1*
+```{r}
+hist(df_results$b1)
+
+```
+
+*Mean (b1):*
+```{r}
+mean(df_results$b1)
+```
+
+*Standard Deviation (b1):*
+```{r}
+sd(df_results$b1)
+```
+
+With mean of $\hat{\beta_{1}} = 3.97236$, the results seem pretty consistent with our theoretical expectations, since $E[\hat{\beta_{1}}] = 4$ (based on the regression given function).
+
+**(d)**
+
+```{r}
+df_results$inc_EY = ifelse(df_results$EY>=df_results$lwr&df_results$EY<=df_results$upr, 1, 0)
+print(paste("% of E{Yh} within Confidence Interval:",sum(df_results$inc_EY)*100/200, "%"))
+
+```
+
+Here we are calculating the 95% confidence interval at $X_{h}=10$ and checking how many times that includes the mean of the fitted values from the 200 experiments. Looking at the regression function, $Y = 20+4*X$ the $E[Y]$ should be the mean of this equation. 
+
+$\implies E[Y] = \frac{\sum_{i=1}^{n}Y_{i}}{n} = \frac{\sum_{i=1}^{n}(b_{0}+b_{1}*X_{i})}{n} = b_{0}+b_{1}*\bar{X} = 20+4*12 = 68$
+
+
+```{r}
+mu = mean(xy_data$X)
+sigma = 5
+Z = (10-mu)/5
+
+print(Z)
+pnorm(10, mu, sigma)
+```
+
+Thus, the probability that the X-value is less than 10 is 0.34 which is more or less consistent with the result we got: 39.5%.
+
+

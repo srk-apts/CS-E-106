@@ -1,0 +1,247 @@
+---
+title: '**CS-E-106: Data Modeling**'
+subtitle: '**Assignment 1**'
+date: '**Due Date:** 09/23/2019'
+author:
+  - '**Instructor: Hakan Gogtas**'
+  - '**Submitted by:** Saurabh Kulkarni'
+output:
+  pdf_document: default
+---
+
+**Solution 1:**
+
+Regression Function: $Y_i = \beta_0 + \epsilon_i$
+
+Thus, sum of squared residuals, $Q = \sum_{i=1}^{n}(Y_i-\beta_0-\epsilon_i)^{2}$
+
+Taking partial derivatives w.r.t. $\beta_0$
+
+$\frac{\partial{Q}}{\partial{\beta_0}} = 2\sum_{i=1}^{n}(Y_i-\beta_0)(-1) =^{set} 0$
+
+$\therefore \sum_{i=1}^{n}Y_i = n\beta_0$
+
+$\therefore \beta_0 = \frac{\sum_{i=1}^{n}Y_i}{n}$
+
+$\therefore \beta_0 = \bar{Y}$
+
+**Solution 2:**
+
+*Install R packages:*
+```{r}
+# install.packages("faraway")
+# install.packages("ggplot2")
+# install.packages("corrgram")
+```
+
+*Numerical Summary of the dataset:*
+
+```{r}
+library(faraway)
+teengamb$sex <- as.factor(teengamb$sex)
+summary(teengamb)
+```
+
+```{r}
+help("teengamb")
+```
+
+Looking at the summary of the dataset, we can see that the numerical variables are on different scales. help() on "teengamb" dataset confirms it.
+
+*Scatterplot Matrix of Numerical Variables:* 
+```{r}
+pairs(teengamb[,-1], pch=19, col=c('blue','red')[teengamb$sex], oma=c(3,3,3,15))
+par(xpd = TRUE)
+legend("bottomright", fill = c('blue', 'red'), legend = c("male", "female"))
+```
+
+We can see that the gambling expediture increases with the increase in income for males but not a very steep increase for females. We can also see a correlation between the variables `verbal` and `status`.
+
+*Correlogram for Males:*
+
+```{r}
+library(corrgram)
+corrgram(teengamb[which(teengamb$sex==0),], order=TRUE, lower.panel=panel.shade,
+  upper.panel=panel.pie, text.panel=panel.txt, oma=c(3,3,3,15),
+  main="Correlogram for Males")
+```
+
+Here, we subset the dataset for males and plot a correlogram to hone in a little bit. The correlogram confirms the correlations we suspected above - we can see strong positive correlation between `gamble` and `income` as well as between `verbal` and `status` for males.
+
+**Solution 3:**
+
+**(a)**
+
+`reg_loop`: Here we write a function to loop over all the desired independent variables in the problem statement, regress the given dependent variable (`Number.of.active.physicians`) on each of them and then return a list of resulting linear models.
+
+```{r}
+reg_loop <- function(df, x_cols, y_str) {
+  lm_regs = list({})
+  for(i in 1:length(x_cols)){
+    x_str = x_cols[i]
+    formula = as.formula(paste(y_str, x_str))
+    lm_regs[[i]] = lm(formula, data=df)
+    print(paste("Linear Regression Summary:", x_cols[i]))
+    print(summary(lm_regs[[i]]))
+  }
+  lm_regs
+}
+```
+
+
+*Fitting the three models:*
+
+```{r}
+cdi = read.csv("cdi.csv")
+cdi = lapply(cdi, as.numeric)
+cdi = data.frame(cdi)
+x_cols = c("Total.population", "Number.of.hospital.beds", "Total.personal.income")
+y_str = "Number.of.active.physicians ~"
+lm_fits = reg_loop(df=cdi, x_cols=x_cols, y_str=y_str)
+```
+
+Thus, we have the *three regression equations* as:
+
+1. Number.of.active.physicians = -110.63 + 0.0028*Total.population
+
+2. Number.of.active.physicians = -95.93 + 0.74*Number.of.hospital.beds
+
+3. Number.of.active.physicians = -48.39 + 0.13*Total.personal.income
+
+**(b)**
+
+`plot_reg_func`: Creates three distinct plots for each model created above.
+
+```{r}
+plot_reg_func <- function(fits, df, x_cols){
+  for(i in 1:length(x_cols)){
+    plot(df[[x_cols[i]]], df[["Number.of.active.physicians"]], xlab=x_cols[i], ylab="Number.of.active.physicians")
+    abline(fits[[i]])
+    }
+}
+```
+
+*Plots for Fitted Regression Lines:*
+
+```{r}
+plot_reg_func(fits=lm_fits, df=cdi, x_cols=x_cols)
+```
+
+Based on the plots, we can say that the simple linear regression models provide a good fit for each of the three independent variable. We can also confirm this by looking at the R-squared values in the summaries printed above or MSE's in part (c).
+
+**(c)**
+
+`mse_loop`: This function goes also over the three predictor variables and calculates the MSE for each of them using the respective model from the list we provide to it.
+
+```{r}
+mse_loop <- function(fits, df, x_cols){
+  for(i in 1:length(x_cols)){
+    yHat = predict(fits[[i]], df[x_cols])
+    resids = (df$`Number.of.active.physicians`-yHat)
+    SSE = (sum(resids^2))
+    df_resids = (nrow(df)-2)
+    MSE = (SSE/df_resids)
+    print(paste("MSE for",x_cols[i]))
+    print(MSE)
+  }
+}
+
+```
+
+*Calculated MSEs:*
+
+```{r}
+mse_loop(fits=lm_fits, df=cdi, x_cols=x_cols)
+```
+
+Thus we can see that `Number.of.hospital.beds` gives the least MSE and thus has least variability around the fitted regression line.
+
+**Solution 4:**
+
+Here we repeat the whole solution to problem 3 but our models are now trained on the 70% training data. We create this by randomly sampling 70% of the data as shown below and call that as our `train_cdi` and the remaining we call `test_cdi`.
+
+```{r}
+train_ind = sample(1:nrow(cdi), 0.7 * nrow(cdi))
+test_ind = setdiff(1:nrow(cdi), train_ind)
+train_cdi = cdi[train_ind,]
+test_cdi = cdi[test_ind,]
+
+```
+
+**(a)**
+
+*Fitting the three models:*
+
+```{r}
+lm_fits_tr = reg_loop(df=train_cdi, x_cols=x_cols, y_str=y_str)
+```
+
+Thus, we have the *new three regression equations* on training set as:
+
+1. Number.of.active.physicians = -114.4 + 0.0027*Total.population
+
+2. Number.of.active.physicians = -119.98 + 0.76*Number.of.hospital.beds
+
+3. Number.of.active.physicians = -53.4 + 0.13*Total.personal.income
+
+
+**(b)**
+
+*Plots for Fitted Regression Lines:*
+
+```{r}
+plot_reg_func(fits=lm_fits_tr, df=train_cdi, x_cols=x_cols)
+
+```
+
+The plots more or less show similar fits as in Solution 3.
+
+
+**(c)**
+
+*Calculated MSEs:*
+
+```{r}
+mse_loop(fits=lm_fits, df=train_cdi, x_cols=x_cols)
+
+```
+
+Thus, with 70% training sample we get `Total.personal.income` as the variable that gives us the smallest variability and thus the best fit. 
+
+
+**Solution 5:**
+
+**(a)**
+
+```{r}
+lm_gamb = lm(gamble~income, data=teengamb)
+summary(lm_gamb)
+```
+
+The regression equation is:
+gamble = -6.325 + 5.52*income 
+
+ 
+```{r}
+yHat = predict(lm_gamb, teengamb["income"])
+resids = (teengamb$gamble-yHat)
+SSE = (sum(resids^2))
+df_resids = (nrow(teengamb)-2)
+MSE = (SSE/df_resids)
+print(paste("Mean of the residuals:", mean(resids)))
+print(paste("Median of the residuals:", median(resids)))
+print(paste("MSE:", MSE))
+```
+
+Note how close the mean of the residuals is to zero. Ideally, it should be perfectly zero (that is one of the properties of least squares).
+
+**(b)**
+
+```{r}
+
+print(paste("Case number for highest positive residual:", which(resids == max(resids))))
+print(resids[24])
+print(teengamb[24,])
+```
+
+

@@ -1,0 +1,260 @@
+---
+title: '**CS-E-106: Data Modeling**'
+subtitle: '**Assignment 3**'
+date: '**Due Date:** 10/07/2019'
+author:
+  - '**Instructor: Hakan Gogtas**'
+  - '**Submitted by:** Saurabh Kulkarni'
+output:
+  pdf_document: default
+---
+
+ 
+**Solution 1:**
+ 
+```{r}
+reg_loop <- function(df, x_cols, y_str) {
+  r2_list = c()
+  lm_fits = list({})
+  for(i in 1:length(x_cols)){
+    x_str = x_cols[i]
+    formula = as.formula(paste(y_str,"~", x_str))
+    lm = lm(formula, data=df)
+    r2_list[[i]] = summary(lm)$r.squared
+  }
+  r2_df = data.frame(cbind(x_cols, r2_list))
+  ordered_df = r2_df[order(r2_list, decreasing = TRUE),]
+  print(paste("Variable with maximum R-squared:",x_cols[which(r2_list == max(r2_list))]))
+  print(paste("R-squared value:",r2_list[which(r2_list == max(r2_list))]))
+  return(ordered_df)
+}
+```
+
+
+```{r}
+cdi = read.csv("cdi.csv")
+colnames(cdi)
+```
+
+
+```{r}
+exc = c("Identification.number", "Number.of.active.physicians")
+x_cols = setdiff(colnames(cdi), exc)
+y_str = "Number.of.active.physicians"
+r2_df = reg_loop(df=cdi, x_cols = x_cols, y_str=y_str)
+```
+
+Thus, **county accounts for maximum variability in the number of active physicians**. The remainder variables and their respective $R^{2}$ is given below in descending order of importance.
+
+```{r}
+r2_df
+```
+
+ 
+ 
+**Solution 2:**
+ 
+ 
+```{r}
+
+confint_regions <- function(df) {
+  regions = levels(factor(df$Geographic.region))
+  lm_fits = list({})
+  for(i in regions){
+    formula = as.formula(paste("Number.of.active.physicians","~", "Percent.bachelor.s.degrees"))
+    lm = lm(formula, data=df[df$Geographic.region==i,])
+    lm_fits[[i]] = lm
+    print(paste("Region:",i))
+    print(confint(lm, level=0.9)[2,])
+    print(summary(lm)$coefficients)
+    cat("\n")
+  }
+  
+}
+```
+
+```{r}
+confint_regions(df=cdi)
+```
+
+Thus, the slopes for the regression lines for differen regions vary from one another.
+ 
+ 
+**Solution 3:**
+ 
+**(a)**
+ 
+```{r}
+gpa = read.csv("GPA.csv")
+lm_gpa = lm(GPA~ACT,  data=gpa)
+summary(lm_gpa)
+
+```
+
+
+```{r}
+anova(lm_gpa)
+```
+ 
+**(b)**
+ 
+$MSR = \sum_{i=1}^n({\hat{Y_{i}}-\bar{Y})}^{2}$
+
+MSR measures the effect of the regression line in explaining the total variation in $Y_{i}$.
+
+$MSE = \frac{\sum_{i=1}^n(Y_{i}-\hat{Y_{i}})^{2}}{n-2}$
+
+MSE measures the mean variation of $Y_{i}$ around the regresion line. Its the average of all the squared distances by which the regression line missed the actual $Y_{i}$.
+
+$E[MSE] = \sigma^{2}$
+
+$E[MSR] = \sigma^{2}+\beta_{1}\sum_{i=1}^n{(X_{i}-\bar{X})^{2}}$
+
+Thus, MSE and MSR will estimate same quantity when $\beta_{1}=0$ i.e. $Y_{i} = \bar{Y}$
+ 
+ 
+**(c)**
+ 
+*Null Hypothesis:* $H_{0}: \beta_{1}=0$;
+*Alternate Hypothesis:* $H_{1}: \beta_{1}\neq0$
+
+*Decision Rule:* 
+
+$F^{*} = \frac{MSR}{MSE}$
+
+- If $F* \leq F(1-\alpha; 1, n-2)$, conclude $H_{0}$;
+
+- If $F* \geq F(1-\alpha; 1, n-2)$, conclude $H_{1}$
+
+
+```{r}
+MSR = 3.5878
+MSE = 0.3883 
+F = MSR/MSE
+print(F)
+```
+
+
+```{r}
+help(pf)
+pf(q=0.01, 1, 118)
+```
+
+*Result:*
+
+Thus, since $F^{*} > F(1-\alpha; 1, n-2)$, we conclude that $H_{1}: \beta_{1}\neq0$ holds.
+
+ 
+**(d)**
+ 
+The absolute magnitude of the reduction in the variation of Y when X is introduced into the regression model is SST - SSE = SSR = 3.588 (from the ANOVA table above).
+
+The relative measure is given by $\frac{SSR}{SST} = \frac{3.588}{3.588+45.818} = 0.0726$. This measure is also known as the $R^{2}$ or the coefficient of determination.
+
+```{r}
+R_sq = 3.588/(3.588+45.818)
+R_sq
+```
+ 
+**(e)**
+ 
+```{r}
+r = sqrt(R_sq)
+r
+```
+
+Looking at the summary of the regression model for GPA dataset, $\beta_{1}$ is positive. Hence, $r = +0.27$.
+ 
+**(f)**
+ 
+Operationally, $R^{2}$ has more clear interpretation.
+
+- $R^{2}$ is the proportion of total variation in Y explained by X. Thus, it is a relative measure of improvement that was made by the introduction of X in the regression model. This can be used in a more direct way compared to r which measures linear association between X and Y.
+
+- $R^{2}$ is on a scale of 0 to 1 (1 indicating the highest correlation), whereas, r ranges from -1 to 1 (the extremes indicating highest correlation). Meaning both r=-1 and r=+1 can mean the same level of association between X and Y. Also, the objective of the coefficients of correlation/determination is to measure the overall effectiveness of the model rather than looking at which direction the regression line is going. This is better accomplished by $R^{2}$.
+ 
+ 
+**Solution 4:**
+ 
+**(a)**
+ 
+```{r}
+crime = read.csv("Crime Rate.csv")
+cor.test(crime$Y,crime$X,method="pearson")
+
+```
+ 
+**(b)**
+ 
+```{r}
+lm_crime = lm(Y~X, data=crime)
+summary(lm_crime)
+anova(lm_crime)
+```
+
+
+*Null Hypothesis:* $H_{0}: \beta_{1}=0$;
+*Alternate Hypothesis:* $H_{1}: \beta_{1}\neq0$
+
+*Decision Rule:* 
+
+$F^{*} = \frac{MSR}{MSE}$
+
+- If $F* \leq F(1-\alpha; 1, n-2)$, conclude $H_{0}$;
+
+- If $F* \geq F(1-\alpha; 1, n-2)$, conclude $H_{1}$
+
+
+```{r}
+MSR = 93462942
+MSE = 5552112 
+F = MSR/MSE
+print(F)
+
+```
+
+
+```{r}
+pf(q=0.01, 1, 82)
+```
+
+*Result:*
+
+Thus, since $F^{*} > F(1-\alpha; 1, n-2)$, we conclude that $H_{1}: \beta_{1}\neq0$ holds.
+ 
+**(c)**
+  
+```{r}
+cor.test(crime$Y,crime$X, method="spearman")
+
+```
+ 
+**(d)**
+ 
+*Null Hypothesis:* There is no association between X and Y;
+*Alternate Hypothesis:* There is an association between X and Y
+
+*Decision Rule:* 
+
+$t^{*} = \frac{r_{s}\sqrt{n-2}}{1-r_{s}^{2}}$
+
+- If $|{t^{*}}| \leq t(1-\alpha/2; n-2)$, conclude $H_{0}$;
+
+- If $|{t^{*}}| \geq t(1-\alpha/2; n-2)$, conclude $H_{1}$
+
+```{r}
+r_s = -0.4259324
+n = nrow(crime)
+t = (r_s*sqrt(n-2)/(1-r_s^2))
+t
+```
+
+
+```{r}
+pt(0.005, 82)
+```
+
+*Result:*
+
+Thus, since $|{t^{*}}| \geq t(1-\alpha/2; n-2)$, we conclude that $H_{1}$ that there is an association between X and Y.
+

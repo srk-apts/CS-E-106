@@ -1759,11 +1759,14 @@ summary {
 <p><strong>(a).</strong></p>
 <p><span class="math display">\[f_X(x) = ax^{a-1}\]</span></p>
 <p><span class="math display">\[\mathbb{E}[X] = \int_{-\inf}^{\inf}x.f_X(x)dx = \int_{0}^{1}x.a.x^{a-1}dx = a\int_{0}^{1}x^{a}dx = a\frac{1}{(a+1)}x^{a+1}|_{0}^{1} = \frac{a}{a+1}\]</span></p>
-<p><span class="math display">\[Var[X] = \mathbb{E}[X^{2}]-(\mathbb{E}[X])^{2} = \int_{0}^{1}x^{2}.a.x^{a-1}dx-(\mathbb{E}[X])^{2} = 
-a\int_{0}^{1}x^{a+1}dx-(\mathbb{E}[X])^{2} = a\frac{1}{(a+2)}x^{a+2}|_{0}^{1}-(\frac{a}{a+1})^{2}=\frac{a}{(a+2)(a+1)^{2}}\]</span></p>
-<p><strong>(b).</strong> <span class="math display">\[f_X(x) = \frac{x}{n}\]</span></p>
-<p><span class="math display">\[\mathbb{E}[X] = \sum_{-\inf}^{\inf}xf_X(x) = \frac{1}{n}\sum_{x=1}^{n}x^{2} = \frac{(n+1)(2n+1)}{6}\]</span></p>
-<p><span class="math display">\[Var(X) = \mathbb{E}[X^{2}]-(\mathbb{E}[X])^{2} = \frac{1}{n}\sum_{x=1}^{n}x^{3}-(\mathbb{E}[X])^{2} = (\frac{n(n+1)}{2})^{2}-(\frac{(n+1)(2n+1)}{6})^{2} = -\frac{(n+1)(4n^{2})-5n+1)}{36}\]</span></p>
+<p><span class="math display">\[Var[X] = \mathbb{E}[X^{2}]-(\mathbb{E}[X])^{2} = \int_{0}^{1}x^{2}.a.x^{a-1}dx-(\mathbb{E}[X])^{2}\]</span></p>
+<p><span class="math display">\[=a\int_{0}^{1}x^{a+1}dx-(\mathbb{E}[X])^{2} = a\frac{1}{(a+2)}x^{a+2}|_{0}^{1}-(\frac{a}{a+1})^{2}\]</span></p>
+<p><span class="math display">\[=\frac{a}{(a+2)(a+1)^{2}}\]</span></p>
+<p><strong>(b).</strong> <span class="math display">\[f_X(x) = \frac{1}{n}\]</span></p>
+<p><span class="math display">\[\mathbb{E}[X] = \sum_{-\inf}^{\inf}xf_X(x) = \frac{1}{n}\sum_{x=1}^{n}x = \frac{1}{n}.\frac{n(n+1)}{2} = \frac{(n+1)}{2}\]</span></p>
+<p><span class="math display">\[Var(X) = \mathbb{E}[X^{2}]-(\mathbb{E}[X])^{2} = \frac{1}{n}\sum_{x=1}^{n}x^{2}-(\mathbb{E}[X])^{2}\]</span></p>
+<p><span class="math display">\[= \frac{1}{n}.(\frac{n(n+1)(2n+1)}{6})-[\frac{(n+1)}{2}]^{2} = \frac{2(n+1)(2n+1)-3(n+1)^{2}}{12}\]</span></p>
+<p><span class="math display">\[=\frac{(n+1)(4n+2-3n-3)}{12}=\frac{(n+1)(n-1)}{12}=\frac{n^{2}-1}{12}\]</span></p>
 <p><strong>(c).</strong> <span class="math display">\[f_X(x) = \frac{3}{2}(x-1)^{2}\]</span></p>
 <p><span class="math display">\[\mathbb{E}[X] = \int_{-\inf}^{\inf}x.f_X(x)dx = \int_{0}^{2}x.\frac{3}{2}(x-1)^{2}dx = \frac{3}{2}\int_{0}^{2}(x^{3}-2x^{2}+x)dx = \frac{3}{2}[\frac{1}{4}x^{4}-\frac{2}{3}x^{3}+\frac{1}{2}x^{2}]|_0^2=1\]</span></p>
 <p><span class="math display">\[Var(X) = \mathbb{E}[X^{2}]-(\mathbb{E}[X])^{2} = \int_{0}^{2}x^{2}.\frac{3}{2}(x-1)^{2}dx-1 = \frac{3}{2}[\frac{1}{5}x^{5}-\frac{1}{2}x^{4}+\frac{1}{3}x^{3}]|_0^2-1=\frac{3}{5}\]</span></p>
@@ -1823,18 +1826,18 @@ print(Y)</code></pre>
 <p><strong>Solution 8:</strong></p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc2FtcGxlcyA8LSBydW5pZigxMDAwMClcbnBlcmNlbnRpbGUgPC0gcXVhbnRpbGUoc2FtcGxlcywgcHJvYnMgPSBjKDAuMDA1LDAuOTk1KSlcbnByaW50KHBlcmNlbnRpbGUpXG5gYGAifQ== -->
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuc2FtcGxlcyA8LSBydW5pZigxMDAwMClcbnBlcmNlbnRpbGUgPC0gcXVhbnRpbGUoc2FtcGxlcywgcHJvYnMgPSBjKDAuOTkpKVxucHJpbnQocGVyY2VudGlsZSlcbmBgYCJ9 -->
 <pre class="r"><code>samples &lt;- runif(10000)
-percentile &lt;- quantile(samples, probs = c(0.005,0.995))
+percentile &lt;- quantile(samples, probs = c(0.99))
 print(percentile)</code></pre>
 <!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiICAgICAgIDAuNSUgICAgICAgOTkuNSUgXG4wLjAwNTM1ODkzMSAwLjk5NTMzNjQyMiBcbiJ9 -->
-<pre><code>       0.5%       99.5% 
-0.005358931 0.995336422 </code></pre>
+<!-- rnb-output-begin eyJkYXRhIjoiICAgICAgOTklIFxuMC45ODgwNjE4IFxuIn0= -->
+<pre><code>      99% 
+0.9880618 </code></pre>
 <!-- rnb-output-end -->
 <!-- rnb-chunk-end -->
 
-<div id="rmd-source-code">LS0tDQp0aXRsZTogJyoqQ1MtRS0xMDY6IERhdGEgTW9kZWxpbmcqKicNCnN1YnRpdGxlOiAnKipBc3NpZ25tZW50IDAqKicNCmRhdGU6ICcqKkR1ZSBEYXRlOioqIDA5LzE2LzIwMTknDQphdXRob3I6DQogIC0gJyoqSW5zdHJ1Y3RvcjogSGFrYW4gR29ndGFzKionDQogIC0gJyoqU3VibWl0dGVkIGJ5OioqIFNhdXJhYmggS3Vsa2FybmknDQpvdXRwdXQ6DQogIHBkZl9kb2N1bWVudDogZGVmYXVsdA0KICBodG1sX25vdGVib29rOiBkZWZhdWx0DQotLS0NCg0KDQoqKlNvbHV0aW9uIDE6KioNCg0KKiooYSkuKioNCg0KJCRmX1goeCkgPSBheF57YS0xfSQkDQoNCiQkXG1hdGhiYntFfVtYXSA9IFxpbnRfey1caW5mfV57XGluZn14LmZfWCh4KWR4ID0gXGludF97MH1eezF9eC5hLnhee2EtMX1keCA9IGFcaW50X3swfV57MX14XnthfWR4ID0gYVxmcmFjezF9eyhhKzEpfXhee2ErMX18X3swfV57MX0gPSBcZnJhY3thfXthKzF9JCQNCg0KJCRWYXJbWF0gPSBcbWF0aGJie0V9W1heezJ9XS0oXG1hdGhiYntFfVtYXSleezJ9ID0gXGludF97MH1eezF9eF57Mn0uYS54XnthLTF9ZHgtKFxtYXRoYmJ7RX1bWF0pXnsyfSA9IA0KYVxpbnRfezB9XnsxfXhee2ErMX1keC0oXG1hdGhiYntFfVtYXSleezJ9ID0gYVxmcmFjezF9eyhhKzIpfXhee2ErMn18X3swfV57MX0tKFxmcmFje2F9e2ErMX0pXnsyfT1cZnJhY3thfXsoYSsyKShhKzEpXnsyfX0kJA0KDQoNCioqKGIpLioqDQokJGZfWCh4KSA9IFxmcmFje3h9e259JCQNCg0KJCRcbWF0aGJie0V9W1hdID0gXHN1bV97LVxpbmZ9XntcaW5mfXhmX1goeCkgPSBcZnJhY3sxfXtufVxzdW1fe3g9MX1ee259eF57Mn0gPSBcZnJhY3sobisxKSgybisxKX17Nn0kJA0KDQokJFZhcihYKSA9IFxtYXRoYmJ7RX1bWF57Mn1dLShcbWF0aGJie0V9W1hdKV57Mn0gPSBcZnJhY3sxfXtufVxzdW1fe3g9MX1ee259eF57M30tKFxtYXRoYmJ7RX1bWF0pXnsyfSA9IChcZnJhY3tuKG4rMSl9ezJ9KV57Mn0tKFxmcmFjeyhuKzEpKDJuKzEpfXs2fSleezJ9ID0gLVxmcmFjeyhuKzEpKDRuXnsyfSktNW4rMSl9ezM2fSQkDQoNCioqKGMpLioqDQokJGZfWCh4KSA9IFxmcmFjezN9ezJ9KHgtMSleezJ9JCQNCg0KJCRcbWF0aGJie0V9W1hdID0gXGludF97LVxpbmZ9XntcaW5mfXguZl9YKHgpZHggPSBcaW50X3swfV57Mn14LlxmcmFjezN9ezJ9KHgtMSleezJ9ZHggPSBcZnJhY3szfXsyfVxpbnRfezB9XnsyfSh4XnszfS0yeF57Mn0reClkeCA9IFxmcmFjezN9ezJ9W1xmcmFjezF9ezR9eF57NH0tXGZyYWN7Mn17M314XnszfStcZnJhY3sxfXsyfXheezJ9XXxfMF4yPTEkJA0KDQokJFZhcihYKSA9IFxtYXRoYmJ7RX1bWF57Mn1dLShcbWF0aGJie0V9W1hdKV57Mn0gPSBcaW50X3swfV57Mn14XnsyfS5cZnJhY3szfXsyfSh4LTEpXnsyfWR4LTEgPSBcZnJhY3szfXsyfVtcZnJhY3sxfXs1fXheezV9LVxmcmFjezF9ezJ9eF57NH0rXGZyYWN7MX17M314XnszfV18XzBeMi0xPVxmcmFjezN9ezV9JCQNCg0KDQoNCioqUiBQcm9ncmFtbWluZyBRdWVzdGlvbnMqKg0KDQpgYGB7cn0NClggPC0gbWF0cml4KGMoMTAsMyw1LDEsOCwyLDksNyw0KSwgbnJvdyA9IDMsIG5jb2wgPSAzKQ0KcHJpbnQoWCkNClkgPC0gbWF0cml4KGMoMiw4LDMsNSwxLDEyLDEzLDQsNyksIG5yb3cgPSAzLCBuY29sID0gMykNCnByaW50KFkpDQpgYGANCg0KKipTb2x1dGlvbiA2OioqDQoNCmBgYHtyfQ0KcHJpbnQoWCtZKQ0KYGBgDQoNCioqU29sdXRpb24gNzoqKg0KDQpgYGB7cn0NCnNvbHZlKCh0KFgpJSolWCkpJSoldChYKSUqJVkNCmBgYA0KDQoqKlNvbHV0aW9uIDg6KioNCg0KYGBge3J9DQpzYW1wbGVzIDwtIHJ1bmlmKDEwMDAwKQ0KcGVyY2VudGlsZSA8LSBxdWFudGlsZShzYW1wbGVzLCBwcm9icyA9IGMoMC4wMDUsMC45OTUpKQ0KcHJpbnQocGVyY2VudGlsZSkNCg0KYGBg</div>
+<div id="rmd-source-code">LS0tCnRpdGxlOiAnKipDUy1FLTEwNjogRGF0YSBNb2RlbGluZyoqJwpzdWJ0aXRsZTogJyoqQXNzaWdubWVudCAwKionCmRhdGU6ICcqKkR1ZSBEYXRlOioqIDA5LzE2LzIwMTknCmF1dGhvcjoKICAtICcqKkluc3RydWN0b3I6IEhha2FuIEdvZ3RhcyoqJwogIC0gJyoqU3VibWl0dGVkIGJ5OioqIFNhdXJhYmggS3Vsa2FybmknCm91dHB1dDoKICBwZGZfZG9jdW1lbnQ6IGRlZmF1bHQKICBodG1sX25vdGVib29rOiBkZWZhdWx0Ci0tLQoKCioqU29sdXRpb24gMToqKgoKKiooYSkuKioKCiQkZl9YKHgpID0gYXhee2EtMX0kJAoKJCRcbWF0aGJie0V9W1hdID0gXGludF97LVxpbmZ9XntcaW5mfXguZl9YKHgpZHggPSBcaW50X3swfV57MX14LmEueF57YS0xfWR4ID0gYVxpbnRfezB9XnsxfXhee2F9ZHggPSBhXGZyYWN7MX17KGErMSl9eF57YSsxfXxfezB9XnsxfSA9IFxmcmFje2F9e2ErMX0kJAoKJCRWYXJbWF0gPSBcbWF0aGJie0V9W1heezJ9XS0oXG1hdGhiYntFfVtYXSleezJ9ID0gXGludF97MH1eezF9eF57Mn0uYS54XnthLTF9ZHgtKFxtYXRoYmJ7RX1bWF0pXnsyfSQkCgokJD1hXGludF97MH1eezF9eF57YSsxfWR4LShcbWF0aGJie0V9W1hdKV57Mn0gPSBhXGZyYWN7MX17KGErMil9eF57YSsyfXxfezB9XnsxfS0oXGZyYWN7YX17YSsxfSleezJ9JCQKCiQkPVxmcmFje2F9eyhhKzIpKGErMSleezJ9fSQkCgoKKiooYikuKioKJCRmX1goeCkgPSBcZnJhY3sxfXtufSQkCgokJFxtYXRoYmJ7RX1bWF0gPSBcc3VtX3stXGluZn1ee1xpbmZ9eGZfWCh4KSA9IFxmcmFjezF9e259XHN1bV97eD0xfV57bn14ID0gXGZyYWN7MX17bn0uXGZyYWN7bihuKzEpfXsyfSA9IFxmcmFjeyhuKzEpfXsyfSQkCgokJFZhcihYKSA9IFxtYXRoYmJ7RX1bWF57Mn1dLShcbWF0aGJie0V9W1hdKV57Mn0gPSBcZnJhY3sxfXtufVxzdW1fe3g9MX1ee259eF57Mn0tKFxtYXRoYmJ7RX1bWF0pXnsyfSQkIAoKJCQ9IFxmcmFjezF9e259LihcZnJhY3tuKG4rMSkoMm4rMSl9ezZ9KS1bXGZyYWN7KG4rMSl9ezJ9XV57Mn0gPSBcZnJhY3syKG4rMSkoMm4rMSktMyhuKzEpXnsyfX17MTJ9JCQKCiQkPVxmcmFjeyhuKzEpKDRuKzItM24tMyl9ezEyfT1cZnJhY3sobisxKShuLTEpfXsxMn09XGZyYWN7bl57Mn0tMX17MTJ9JCQKCioqKGMpLioqCiQkZl9YKHgpID0gXGZyYWN7M317Mn0oeC0xKV57Mn0kJAoKJCRcbWF0aGJie0V9W1hdID0gXGludF97LVxpbmZ9XntcaW5mfXguZl9YKHgpZHggPSBcaW50X3swfV57Mn14LlxmcmFjezN9ezJ9KHgtMSleezJ9ZHggPSBcZnJhY3szfXsyfVxpbnRfezB9XnsyfSh4XnszfS0yeF57Mn0reClkeCA9IFxmcmFjezN9ezJ9W1xmcmFjezF9ezR9eF57NH0tXGZyYWN7Mn17M314XnszfStcZnJhY3sxfXsyfXheezJ9XXxfMF4yPTEkJAoKJCRWYXIoWCkgPSBcbWF0aGJie0V9W1heezJ9XS0oXG1hdGhiYntFfVtYXSleezJ9ID0gXGludF97MH1eezJ9eF57Mn0uXGZyYWN7M317Mn0oeC0xKV57Mn1keC0xID0gXGZyYWN7M317Mn1bXGZyYWN7MX17NX14Xns1fS1cZnJhY3sxfXsyfXheezR9K1xmcmFjezF9ezN9eF57M31dfF8wXjItMT1cZnJhY3szfXs1fSQkCgoKCioqUiBQcm9ncmFtbWluZyBRdWVzdGlvbnMqKgoKYGBge3J9ClggPC0gbWF0cml4KGMoMTAsMyw1LDEsOCwyLDksNyw0KSwgbnJvdyA9IDMsIG5jb2wgPSAzKQpwcmludChYKQpZIDwtIG1hdHJpeChjKDIsOCwzLDUsMSwxMiwxMyw0LDcpLCBucm93ID0gMywgbmNvbCA9IDMpCnByaW50KFkpCmBgYAoKKipTb2x1dGlvbiA2OioqCgpgYGB7cn0KcHJpbnQoWCtZKQpgYGAKCioqU29sdXRpb24gNzoqKgoKYGBge3J9CnNvbHZlKCh0KFgpJSolWCkpJSoldChYKSUqJVkKYGBgCgoqKlNvbHV0aW9uIDg6KioKCmBgYHtyfQpzYW1wbGVzIDwtIHJ1bmlmKDEwMDAwKQpwZXJjZW50aWxlIDwtIHF1YW50aWxlKHNhbXBsZXMsIHByb2JzID0gYygwLjk5KSkKcHJpbnQocGVyY2VudGlsZSkKCmBgYA==</div>
 
 
 

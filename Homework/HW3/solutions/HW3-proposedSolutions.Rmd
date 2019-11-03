@@ -1,0 +1,147 @@
+---
+title: "HW3-proposed solutions"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+## Problem 1
+### Refer to the CDI data set. Using R2 as the criterion, which predictor variable accounts for the largest reduction in the variability in the number of active physicians?
+
+### _Solution:_
+
+```{r}
+library(knitr)
+CDI <- read.csv("data/CDI.csv")
+Temp<-CDI[,4:17]
+X<- Temp[,-c(5)]
+Y<- Temp[,5]
+
+prg1 <-function(X,Y){
+out<-matrix(0,nrow=13,ncol=1)
+for (i in 1:13){
+f<-lm(Y~X[,i])
+f1<-summary(f)
+out[i,1]<- f1$r.squared
+} 
+data.frame(names(X) ,out)} 
+
+kable(prg1(X,Y))
+
+names(X[which.max(prg1(X,Y)[,2])])
+```
+Number of Hospital beds has the highest R Square.
+
+
+## Problem 2
+### Refer to the CDI data set in Appendix C.2 and Project l.44. Obtain a separate interval estimate of $\beta_1$, for each region. Use a 90 percent confidence coefficient in each case. Do the regression lines for the different regions appear to have similar slopes?
+
+### _Solution:_
+
+They re different, the confidence intervals do not overlap.
+
+```{r}
+f1<-lm(Per.capita.income~Percent.bachelor.s.degrees,data= CDI[CDI[,17]==1,])
+f2<-lm(Per.capita.income~Percent.bachelor.s.degrees,data= CDI[CDI[,17]==2,])
+f3<-lm(Per.capita.income~Percent.bachelor.s.degrees,data= CDI[CDI[,17]==3,])
+f4<-lm(Per.capita.income~Percent.bachelor.s.degrees,data= CDI[CDI[,17]==4,])
+
+confint(f1,level=0.9)
+confint(f2,level=0.9)
+confint(f3,level=0.9)
+confint(f4,level=0.9)
+
+```
+
+
+## Problem 3
+### Refer to GPA data:
+### a)	Set up the ANOVA table.
+### b) What is estimated by MSR in your ANOVA table? by MSE? Under what condition do MSR and MSE estimate the same quantity?
+### c)	Conduct an F test of whether or not $\beta_1 = 0$. Control the $\alpha$ risk at .01. State the alternatives, decision rule, and conclusion.
+### d) What is the absolute magnitude of the reduction in the variation of Y when X is introduced into the regression model? What is the relative reduction? What is the name of the latter measure?
+### e) Obtain r and attach the appropriate sign.
+### f) Which measure, $R^2$ or $r$, has the more clear-cut operational interpretation? Explain.
+
+### _Solution:_
+### a)
+
+```{r}
+GPA <- read.csv("GPA.csv")
+f<-lm(GPA~ACT,data=GPA)
+anova(f,test="Chi")
+
+```
+
+
+
+
+### b)
+
+$$\sigma^2 + \beta_1^2 \sum\left(X_i - \hat{X} \right), \sigma^2, \text{ when } \beta_1 =0$$
+
+
+
+### c)
+
+From the ANOVA table above, Fstat=9.2402 and P Value= 0.002917. 
+Reject Null and accept Ha. $\beta_1$ is significant.
+
+### d)
+
+SSR = 3.588, 3.588/(3.588+45.818) = 7.26% or 0.0726, coefficient of determination
+
+### e)
+
+Sign is positive since the slope is positive.
+
+```{r}
+sqrt(0.0726)
+```
+
+### f)
+
+$R^2$
+
+
+## Problem 4
+### Refer to Crime rate data. 
+### a) Compute the Pearson product-moment correlation coefficient $r_{12}$.
+### b) Test whether crime rate and percentage of high school graduates are statistically independent in the population; use a $\alpha$ = .01. State the alternatives, decision rule, and conclusion.
+### c) Compute the Spearman rank correlation coefficient rs.
+### d) Test by means of the Spearman rank correlation coefficient whether an association exists between crime rate and percentage of high school graduates. State the alternatives, decision rule, and conclusion.
+
+### _Solution:_
+### a)
+```{r}
+Crime.Rate <- read.csv("Crime Rate.csv")
+
+cor.test(Crime.Rate$X,Crime.Rate$Y, method ="pearson", conf.level = .99)
+```
+
+r12=-0.4127033
+
+
+### b)
+
+$$H_0:\rho = 0$$
+$$H_A: \rho \ne 0$$
+From above, the p-value = 9.571e-05, reject null, $\rho$ is significant 
+
+
+
+### c)
+
+```{r}
+cor.test(Crime.Rate$X,Crime.Rate$Y, method ="spearman")
+```
+
+rs=-0.4259324
+
+### d) 
+
+$$H_0:\rho = 0$$
+
+$$H_A: \rho \ne 0$$
+
+From above, the p-value = 5.359e-05, reject null, $\rho$ is significant

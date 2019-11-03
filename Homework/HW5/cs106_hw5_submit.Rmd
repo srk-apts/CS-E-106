@@ -5,12 +5,11 @@ date: '**Due Date:** 11/04/2019'
 author:
   - '**Instructor: Hakan Gogtas**'
   - '**Submitted by:** Saurabh Kulkarni'
-output:
-  pdf_document: 
-    latex_engine: xelatex
+output: pdf_document
 ---
 
 ```{r}
+
 library(ggplot2)
 library(MASS)
 library(lattice)
@@ -18,6 +17,233 @@ library(lattice)
 
 
 **Solution 1:**
+
+**(a)**
+
+**(1)**
+
+$$ 
+X'X = 
+\begin{pmatrix} 
+n & \sum{X_{i}}\\
+\sum{X_{i}} & \sum{X_{i}^{2}}
+\end{pmatrix}
+$$
+Using rule 5.22:
+$a = n$
+$b = c = \sum{X_{i}}$
+$d = \sum{X_{i}^{2}}$
+
+$D = n\sum{X_{i}^{2}} - (\sum{X_{i}})(\sum{X_{i}} = n[\sum{X_{i}^{2}} - \frac{(\sum{X_{i}})^{2}}{n}]) = n\sum{(X_{i}-\bar{X)}^{2}}$
+
+
+$$ 
+(X'X)^{-1} = 
+\begin{pmatrix} 
+\frac{\sum{X_{i}^{2}}}{n\sum{(X_{i}-\bar{X})^2}} & \frac{-\sum{X_{i}}}{n\sum{(X_{i}-\bar{X})^2}}\\
+\frac{-\sum{X_{i}}}{n\sum{(X_{i}-\bar{X})^2}} & \frac{n}{n\sum{(X_{i}-\bar{X})^2}}
+\end{pmatrix}
+$$
+
+However, $\sum{X_{i}} = n\bar{X}$ and $\sum{(X_{i}-\bar{X})}^2=\sum{X_{i}^2}-n\bar{X}^2$
+
+
+$$
+(X'X)^{-1} = 
+\begin{pmatrix} 
+\frac{1}{n}+\frac{\bar{X}^2}{\sum{(X_{i}-\bar{X})^2}} & \frac{-\bar{X}}{\sum{(X_{i}-\bar{X})^2}}\\
+\frac{-\bar{X}}{\sum{(X_{i}-\bar{X})^2}} & \frac{1}{\sum{(X_{i}-\bar{X})^2}}
+\end{pmatrix}
+$$
+
+**(2)**
+
+$nb_{0}+b_{1}\sum{X_{i}} = \sum{Y_{i}}$
+
+$b_{0}\sum{X_{i}}+b_{1}\sum{X_{i}^2} = \sum{X_{i}Y_{i}}$
+
+$\implies X'Xb = X'Y$
+
+$\implies b = (X'X)^{-1}X'Y$
+
+**(3)**
+
+Normal error regression model:
+$Y_{i} = \beta{0}+\beta_{1}X_{i}+\epsilon_{i}$
+
+$$
+Y = \begin{pmatrix} 
+Y_{1}\\
+Y_{2}\\
+.\\
+.\\
+.\\
+Y_{n}
+\end{pmatrix}
+
+X = \begin{pmatrix} 
+1 & X_{1}\\
+1 & X_{1}\\
+. & .\\
+. & .\\
+. & .\\
+1 & X_{n}
+\end{pmatrix}
+
+\beta = 
+\begin{pmatrix} 
+\beta_{0}\\
+\beta_{1}
+\end{pmatrix}
+
+\epsilon = \begin{pmatrix} 
+\epsilon_{1}\\
+\epsilon_{2}\\
+.\\
+.\\
+.\\
+\epsilon_{n}
+\end{pmatrix}
+$$
+
+$$
+\begin{pmatrix} 
+Y_{1}\\
+Y_{2}\\
+.\\
+.\\
+.\\
+Y_{n}
+\end{pmatrix} 
+= 
+\begin{pmatrix} 
+1 & X_{1}\\
+1 & X_{1}\\
+. & .\\
+. & .\\
+. & .\\
+1 & X_{n}
+\end{pmatrix} 
+
+\begin{pmatrix} 
+\beta_{0}\\
+\beta_{1}
+\end{pmatrix} 
++ 
+\begin{pmatrix} 
+\epsilon_{1}\\
+\epsilon_{2}\\
+.\\
+.\\
+.\\
+\epsilon_{n}
+\end{pmatrix}
+$$
+$$
+\therefore \hat{Y} = X \beta
+$$
+
+
+**(4)**
+
+
+$$
+\hat{Y} = \begin{pmatrix} 
+Y_{1}\\
+Y_{2}\\
+.\\
+.\\
+.\\
+Y_{n}
+\end{pmatrix}
+= Xb = X(X'X)^{-1}X'Y = HY
+
+\implies H = X(X'X)^{-1}X'
+
+$$
+
+**(5)**
+
+$$
+e = \begin{pmatrix} 
+\epsilon_{1}\\
+\epsilon_{2}\\
+.\\
+.\\
+.\\
+\epsilon_{n}
+\end{pmatrix} 
+= 
+Y - \hat{Y} = Y-X'b
+$$
+
+$$
+SSE = e'e = (Y-Xb)'(Y-Xb) = Y'Y-b'X'Y
+$$
+
+**(6)**
+
+$$
+\sigma^{2}{b} = \sigma^{2}(X'X)^{-1}
+$$
+$$
+\sigma^{2}{b} = \begin{pmatrix} 
+\frac{\sigma^{2}}{n}+\frac{\sigma^{2}\bar{X}^2}{\sum{(X_{i}-\bar{X})^2}} & \frac{-\bar{X}\sigma^{2}}{\sum{(X_{i}-\bar{X})^2}}\\
+\frac{-\bar{X}\sigma^{2}}{\sum{(X_{i}-\bar{X})^2}} & \frac{\sigma^{2}}{\sum{(X_{i}-\bar{X})^2}}
+\end{pmatrix}
+$$
+
+$$
+s^{2}{b} = MSE(X'X)^{-1} = \begin{pmatrix} 
+\frac{MSE}{n}+\frac{MSE\bar{X}^2}{\sum{(X_{i}-\bar{X})^2}} & \frac{-\bar{X}MSE}{\sum{(X_{i}-\bar{X})^2}}\\
+\frac{-\bar{X}MSE}{\sum{(X_{i}-\bar{X})^2}} & \frac{MSE}{\sum{(X_{i}-\bar{X})^2}}
+\end{pmatrix}
+$$
+
+**(7)**
+
+$$
+s^2{pred} = MSE(1+X'_{h}(X'X)^{-1}X_{h})
+$$
+
+At $X_{h}=30$,
+
+$s^2{pred} = MSE(1+30^2(X'X)^{-1})$
+
+**(b)**
+
+$$
+\sigma^{2}{b} = \begin{pmatrix} 
+\sigma^{2}(b_{0}) & \sigma(b_{0},b_{1})\\
+\sigma(b_{0},b_{1}) & \sigma^{2}(b_{1})
+\end{pmatrix}
+$$
+Thus, from part(a)(6):
+
+$s^2(b_{0}) = \frac{MSE}{n}+\frac{MSE\bar{X}^2}{\sum{(X_{i}-\bar{X})^2}}$
+
+$s(b_{0}, b_{1}) = \frac{-\bar{X}MSE}{\sum{(X_{i}-\bar{X})^2}}$
+
+$s^2(b_{1}) = \frac{MSE}{\sum{(X_{i}-\bar{X})^2}}$
+
+**(c)**
+
+From part(a)(5), 
+$$
+SSE = e'e = (Y-Xb)'(Y-Xb) = Y'Y-b'X'Y
+$$
+$b'X' = (Xb)' = \hat{Y}' = (HY)'$
+
+From Hat matrix part(a)(3-4):
+
+$b'X' = (HY)'$
+
+H is symmetric, so H' = H. Hence,
+
+$b'X' = Y'H$
+
+$\implies SSE = Y'(I-H)Y$
+
 
 **Solution 2:**
 
@@ -37,6 +263,11 @@ corrgram(brand_data, order=TRUE, lower.panel=panel.shade,
 cor(brand_data)
 ```
 
+*Interpretation:*
+
+We can see a linear relationship between X1 and Y ($r \approx 0.9$). However, there seems to be little correlation between X2 and Y, or X2 and X1 either.
+
+
 **(b)**
 
 ```{r}
@@ -46,6 +277,10 @@ summary(lm_brand)
 
 Estimated Regression Function: $Y = 37.65+4.425*X1+4.375*X1$
 
+*Interpretation:*
+
+Based on the regression function, none of the $\beta$'s seem to be zero. $\beta_{2}$ does has a higher standard error and a greater p-value, which means X1 is more correlated to Y compared to X2. Also, the model is a very good fit ($R^2=0.95$).
+
 **(c)**
 
 ```{r}
@@ -53,6 +288,10 @@ ei = lm_brand$residuals
 boxplot(ei)
 title(main="Boxplot of Residuals")
 ```
+
+*Interpretation:*
+
+We see that we don't have any outliers in the error term based on the box plot. Also, it seems to be evenly spread around 0. 
 
 **(d)**
 
@@ -82,7 +321,17 @@ plot(zr1, ei, xlab="Expected Value under Normality",ylab="Residuals")
 title(main="Normal Probability Plot")
 ```
 
+*Interpretation:*
+
+*Residual Plots:* The residuals appear to be equally spread and have no distinct patterns. We can say that there is contant variance in the error term.
+
+*Normal Probability Plot:* The plot seems to be almost linear, which means that the error is in agreement with the normality. 
+
+
 **(e)**
+
+Null Hypothesis: $H_{0}$: Error variance is constant
+Alternate Hypothesis: $H_{1}$: Error variance is not constant
 
 ```{r}
 ei2 = ei^2
@@ -118,33 +367,67 @@ print(chi)
 
 ```
 
+*Decision Rule:*
+
+- If $chiTest \leq \chi^{2}(1-\alpha,1)$, conclude $H_{0}$: constant error variance
+
+- If $chiTest > \chi^{2}(1-\alpha,1)$, conclude $H_{1}$: non-constant error variance 
+
+
+*Result:*
+
+Since $1.042138 \leq 3.841459$ i.e. $chiTest \leq \chi^{2}(1-\alpha,1)$, we conclude $H_{0}$. The error variance is constant.
+
+
 **Solution 3:**
 
 **(a)**
 
+*Hypothesis:*
+
+$H_0: \beta_k = 0$ 
+
+$H_a: \beta_k \neq 0$ 
 
 ```{r}
 df_brand = lm_brand$df.residual
 alpha = 0.01
+anova(lm_brand)
+```
 
+```{r}
 SSR_X1 = anova(lm_brand)[1,2]
 SSR_X2 = anova(lm_brand)[2,2]
 SSE = anova(lm_brand)[3,2]
 MSR_X1 = SSR_X1/1
 MSR_X2 = SSR_X2/1
-MSE = SSE/df
-print(MSE)
+MSE = SSE/df_brand
 
 F_star_X1 = MSR_X1/MSE
 print(F_star_X1)
 
 F_star_X2 = MSR_X2/MSE
 print(F_star_X2)
+```
 
-F_db = qf(1-alpha, 1, df_brand) 
-print(F_db)
+
+```{r}
+FTest = qf(1-alpha, 1, df_brand) 
+print(FTest)
 
 ```
+
+*Decision Rule:*
+
+If $F^* \leq FTest$ , conclude $H_0$
+
+If $F^* > FTest$ , conclude $H_a$
+
+
+*Result:*
+
+Since $F^*_{X1} and F^*_{X2}$ are both $> FTest$, we conclude $H_a$ i.e. both the $\beta_k$ are $neq$ 0. Thus, there exists a linear relation.
+
 
 **(b)**
 
@@ -155,13 +438,20 @@ g = length(lm_brand$coefficients)
 confint(lm_brand, level = 1-alpha/g)
 ```
 
+*Interpretation:*
+
+Family confidence coefficient means that the obtained confidence intervals, for several $\beta_k$, are simultaneously accurate with a confidence coefficient of $1-\alpha = 99$%.
 
 **(c)**
 
 ```{r}
 Xh<-data.frame(X1=5, X2=4)
-predict(lm_brand, Xh,se.fit=TRUE,interval="confidence",level=0.99)
+predict(lm_brand, Xh,se.fit=TRUE,interval="confidence",level=1-alpha)
 ```
+
+*Interpretation:*
+
+This means that the $E[Y_h]$ for the observations in $X_h$ are within the obtained interval with a confidence coeficient of $1-\alpha = 99$%, where all observations in $X_h$ are seen by our model.
 
 **(d)**
 
@@ -169,6 +459,11 @@ predict(lm_brand, Xh,se.fit=TRUE,interval="confidence",level=0.99)
 Xh<-data.frame(X1=5, X2=4)
 predict(lm_brand, Xh,se.fit=TRUE,interval="prediction",level=0.99)
 ```
+
+*Interpretation:*
+
+This means that the $E[Y_h]$ for the observations in $X_h$ are within the obtained interval with a confidence coeficient of $1-\alpha = 99$ %, where all observations in $X_h$ are new.
+
 
 **Solution 4:**
 
@@ -189,6 +484,12 @@ corrgram(properties_data, order=TRUE, lower.panel=panel.shade,
 cor(properties_data)
 ```
 
+*Interpretation:*
+
+- There seems to be no 1:1 correlation in the data between any of the variables. 
+- The highest 1:1 correlation being between X4 and Y. 
+- We can see some clusters of data points in the plots for X1 and X3, showing that they are not equally spread.
+
 **(b)**
 
 ```{r}
@@ -205,6 +506,7 @@ ei = lm_prop$residuals
 qqmath(ei)
 ```
 
+*Interpretation:* The QQ plot seems to be almost linear, which means that the error is in agreement with the normality. Distribution is fairly linear.
 
 **(d)**
 
@@ -225,6 +527,8 @@ plot(zr1, ei, xlab="Expected Value under Normality",ylab="Residuals")
 title(main="Normal Probability Plot")
 ```
 
+*Interpretation:* The normal probability plot also seems to be almost linear, which means that the error is in agreement with the normality. 
+
 
 ```{r}
 plot(properties_data$Y, ei)
@@ -240,6 +544,11 @@ plot(properties_data$X2*properties_data$X4, ei)
 plot(properties_data$X3*properties_data$X4, ei)
 ```
 
+*Interpretation:* 
+- There is a linear pattern between residuals and Y, which could suggest that our linear model is not a good fit through out the data.
+- We can see some clusters of data points in the plots for X1 and X3 and their respective interactions.
+- For X2 and X4 and their interactions, the error variance is constant.
+
 **(e)**
 
 ```{r}
@@ -249,6 +558,9 @@ df = data.frame(cbind(properties_data, fitted_df, ei))
 df = df[order(df$fitted_values),]
 ```
 
+
+Null Hypothesis: $H_{0}$: Error variance is constant
+Alternate Hypothesis: $H_{1}$: Error variance is not constant
 
 ```{r}
 df1 = df[1:40,]
@@ -290,6 +602,17 @@ print(t)
 
 ```
 
+*Decision Rule:*
+
+- If $|testStatistic| \leq t(1-\alpha/2,n-2)$, conclude $H_{0}$: constant error variance
+
+- If $|testStatistic| > t(1-\alpha/2,n-2)$, conclude $H_{1}$: non-constant error variance 
+
+
+*Result:*
+
+Since $|0.5520951| \leq 1.65787$ i.e. $|testStatistic| \leq t(1-\alpha/2,n-2)$, we conclude $H_{0}$. The error variance is constant and thus does not vary with X.
+
 **Solution 5:**
 
 **(a)**
@@ -311,12 +634,16 @@ g = nrow(Xh)
 predict(lm_prop, Xh, se.fit=TRUE, interval="prediction", level=1-alpha)
 ```
 
+*Interpretation:*
+
+We see that the intervals are not too wide for the individual prediction intervals. We get an $R^2$ of 0.5847 which gives a somewhat of a good prediction.
 
 ```{r}
 CI = predict(lm_prop, Xh, se.fit=TRUE, interval="confidence", level=1-alpha/g)
 CI
 ```
 
+*Bonferroni and Working-Hotelling Method:*
 
 ```{r}
 p = length(lm_prop$coefficients)
@@ -341,19 +668,4 @@ est_resp_CI
 
 ```
 
-
-```{r}
-```
-
-
-```{r}
-```
-
-
-```{r}
-```
-
-
-```{r}
-```
 
