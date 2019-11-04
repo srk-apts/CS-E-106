@@ -20,33 +20,25 @@ library(lattice)
 
 **(a)**
 
+```{r}
+plastic_data = read.csv("Plastic Hardness.csv")
+```
+
+
 **(1)**
 
-$$ 
-X'X = 
-\begin{pmatrix} 
-n & \sum{X_{i}}\\
-\sum{X_{i}} & \sum{X_{i}^{2}}
-\end{pmatrix}
-$$
-Using rule 5.22:
-$a = n$
-$b = c = \sum{X_{i}}$
-$d = \sum{X_{i}^{2}}$
-
-$D = n\sum{X_{i}^{2}} - (\sum{X_{i}})(\sum{X_{i}} = n[\sum{X_{i}^{2}} - \frac{(\sum{X_{i}})^{2}}{n}]) = n\sum{(X_{i}-\bar{X)}^{2}}$
+```{r}
+X_0 = rep_len(1, nrow(plastic_data))
+X_1 = plastic_data$X
+X = cbind(X_0, X_1)
+```
 
 
-$$ 
-(X'X)^{-1} = 
-\begin{pmatrix} 
-\frac{\sum{X_{i}^{2}}}{n\sum{(X_{i}-\bar{X})^2}} & \frac{-\sum{X_{i}}}{n\sum{(X_{i}-\bar{X})^2}}\\
-\frac{-\sum{X_{i}}}{n\sum{(X_{i}-\bar{X})^2}} & \frac{n}{n\sum{(X_{i}-\bar{X})^2}}
-\end{pmatrix}
-$$
-
-However, $\sum{X_{i}} = n\bar{X}$ and $\sum{(X_{i}-\bar{X})}^2=\sum{X_{i}^2}-n\bar{X}^2$
-
+```{r}
+XTX = crossprod(X)
+XTX_inv = solve(XTX)
+XTX_inv
+```
 
 $$
 (X'X)^{-1} = 
@@ -56,111 +48,45 @@ $$
 \end{pmatrix}
 $$
 
+
 **(2)**
 
-$nb_{0}+b_{1}\sum{X_{i}} = \sum{Y_{i}}$
-
-$b_{0}\sum{X_{i}}+b_{1}\sum{X_{i}^2} = \sum{X_{i}Y_{i}}$
-
-$\implies X'Xb = X'Y$
 
 $\implies b = (X'X)^{-1}X'Y$
+
+```{r}
+X_T = t(X)
+Y = plastic_data$Y
+b = XTX_inv%*%X_T%*%Y
+b
+
+```
+
 
 **(3)**
 
 Normal error regression model:
-$Y_{i} = \beta{0}+\beta_{1}X_{i}+\epsilon_{i}$
+$Y_{i} = \beta_{0}+\beta_{1}X_{i}+\epsilon_{i}$
 
-$$
-Y = \begin{pmatrix} 
-Y_{1}\\
-Y_{2}\\
-.\\
-.\\
-.\\
-Y_{n}
-\end{pmatrix}
 
-X = \begin{pmatrix} 
-1 & X_{1}\\
-1 & X_{1}\\
-. & .\\
-. & .\\
-. & .\\
-1 & X_{n}
-\end{pmatrix}
-
-\beta = 
-\begin{pmatrix} 
-\beta_{0}\\
-\beta_{1}
-\end{pmatrix}
-
-\epsilon = \begin{pmatrix} 
-\epsilon_{1}\\
-\epsilon_{2}\\
-.\\
-.\\
-.\\
-\epsilon_{n}
-\end{pmatrix}
-$$
-
-$$
-\begin{pmatrix} 
-Y_{1}\\
-Y_{2}\\
-.\\
-.\\
-.\\
-Y_{n}
-\end{pmatrix} 
-= 
-\begin{pmatrix} 
-1 & X_{1}\\
-1 & X_{1}\\
-. & .\\
-. & .\\
-. & .\\
-1 & X_{n}
-\end{pmatrix} 
-
-\begin{pmatrix} 
-\beta_{0}\\
-\beta_{1}
-\end{pmatrix} 
-+ 
-\begin{pmatrix} 
-\epsilon_{1}\\
-\epsilon_{2}\\
-.\\
-.\\
-.\\
-\epsilon_{n}
-\end{pmatrix}
-$$
 $$
 \therefore \hat{Y} = X \beta
 $$
+```{r}
+YHat = X%*%b
+YHat
+```
 
 
 **(4)**
 
+$\implies H = X(X'X)^{-1}X'$
 
-$$
-\hat{Y} = \begin{pmatrix} 
-Y_{1}\\
-Y_{2}\\
-.\\
-.\\
-.\\
-Y_{n}
-\end{pmatrix}
-= Xb = X(X'X)^{-1}X'Y = HY
+```{r}
+H = X%*%XTX_inv%*%X_T
+H
+```
 
-\implies H = X(X'X)^{-1}X'
-
-$$
 
 **(5)**
 
@@ -181,17 +107,15 @@ $$
 SSE = e'e = (Y-Xb)'(Y-Xb) = Y'Y-b'X'Y
 $$
 
+```{r}
+SSE = t(Y)%*%Y-t(b)%*%X_T%*%Y
+SSE
+```
+
+
 **(6)**
 
-$$
-\sigma^{2}{b} = \sigma^{2}(X'X)^{-1}
-$$
-$$
-\sigma^{2}{b} = \begin{pmatrix} 
-\frac{\sigma^{2}}{n}+\frac{\sigma^{2}\bar{X}^2}{\sum{(X_{i}-\bar{X})^2}} & \frac{-\bar{X}\sigma^{2}}{\sum{(X_{i}-\bar{X})^2}}\\
-\frac{-\bar{X}\sigma^{2}}{\sum{(X_{i}-\bar{X})^2}} & \frac{\sigma^{2}}{\sum{(X_{i}-\bar{X})^2}}
-\end{pmatrix}
-$$
+
 
 $$
 s^{2}{b} = MSE(X'X)^{-1} = \begin{pmatrix} 
@@ -199,6 +123,17 @@ s^{2}{b} = MSE(X'X)^{-1} = \begin{pmatrix}
 \frac{-\bar{X}MSE}{\sum{(X_{i}-\bar{X})^2}} & \frac{MSE}{\sum{(X_{i}-\bar{X})^2}}
 \end{pmatrix}
 $$
+
+
+```{r}
+n = nrow(plastic_data)
+p = ncol(X)
+MSE = SSE/(n-p)
+s2_b = MSE[1,1]*XTX_inv
+s2_b
+
+```
+
 
 **(7)**
 
@@ -208,7 +143,12 @@ $$
 
 At $X_{h}=30$,
 
-$s^2{pred} = MSE(1+30^2(X'X)^{-1})$
+```{r}
+Xh = array(c(1,30))
+s2_pred = MSE*(1+t(Xh)%*%XTX_inv%*%Xh)
+s2_pred
+```
+
 
 **(b)**
 
@@ -220,29 +160,22 @@ $$
 $$
 Thus, from part(a)(6):
 
-$s^2(b_{0}) = \frac{MSE}{n}+\frac{MSE\bar{X}^2}{\sum{(X_{i}-\bar{X})^2}}$
+$s^2(b_{0}) = 7.0597768$
 
-$s(b_{0}, b_{1}) = \frac{-\bar{X}MSE}{\sum{(X_{i}-\bar{X})^2}}$
+$s(b_{0}, b_{1}) = -0.228789063$
 
-$s^2(b_{1}) = \frac{MSE}{\sum{(X_{i}-\bar{X})^2}}$
+$s^2(b_{1}) = 0.008171038$
 
 **(c)**
 
-From part(a)(5), 
-$$
-SSE = e'e = (Y-Xb)'(Y-Xb) = Y'Y-b'X'Y
-$$
-$b'X' = (Xb)' = \hat{Y}' = (HY)'$
-
-From Hat matrix part(a)(3-4):
-
-$b'X' = (HY)'$
-
-H is symmetric, so H' = H. Hence,
-
-$b'X' = Y'H$
-
 $\implies SSE = Y'(I-H)Y$
+
+
+```{r}
+I = diag(16)
+SSE = t(Y)%*%(I-H)%*%Y
+SSE
+```
 
 
 **Solution 2:**
@@ -279,7 +212,7 @@ Estimated Regression Function: $Y = 37.65+4.425*X1+4.375*X1$
 
 *Interpretation:*
 
-Based on the regression function, none of the $\beta$'s seem to be zero. $\beta_{2}$ does has a higher standard error and a greater p-value, which means X1 is more correlated to Y compared to X2. Also, the model is a very good fit ($R^2=0.95$).
+Based on the regression function, none of the $\beta$'s seem to be zero. $\beta_{2}$ has a higher standard error and a greater p-value, which means X1 is more correlated to Y compared to X2. Also, the model is a very good fit ($R^2=0.95$).
 
 **(c)**
 
@@ -457,7 +390,7 @@ This means that the $E[Y_h]$ for the observations in $X_h$ are within the obtain
 
 ```{r}
 Xh<-data.frame(X1=5, X2=4)
-predict(lm_brand, Xh,se.fit=TRUE,interval="prediction",level=0.99)
+predict(lm_brand, Xh,se.fit=TRUE,interval="prediction",level=1-alpha)
 ```
 
 *Interpretation:*
@@ -547,7 +480,7 @@ plot(properties_data$X3*properties_data$X4, ei)
 *Interpretation:* 
 - There is a linear pattern between residuals and Y, which could suggest that our linear model is not a good fit through out the data.
 - We can see some clusters of data points in the plots for X1 and X3 and their respective interactions.
-- For X2 and X4 and their interactions, the error variance is constant.
+- For X2 and X4 and their interactions, the error variance is constant implying a linear relation with Y.
 
 **(e)**
 
@@ -638,6 +571,14 @@ predict(lm_prop, Xh, se.fit=TRUE, interval="prediction", level=1-alpha)
 
 We see that the intervals are not too wide for the individual prediction intervals. We get an $R^2$ of 0.5847 which gives a somewhat of a good prediction.
 
+*Family Confidence Level:*
+
+```{r}
+1-alpha/(2*g)
+```
+
+
+
 ```{r}
 CI = predict(lm_prop, Xh, se.fit=TRUE, interval="confidence", level=1-alpha/g)
 CI
@@ -649,7 +590,9 @@ CI
 p = length(lm_prop$coefficients)
 n = nrow(properties_data)
 B = qt(1-alpha/(2*g), n-p)
+print(B)
 W = sqrt(2*qf(1-alpha, g, n-p))
+print(W)
 s = CI$se.fit
 Yh = CI$fit[,1]
 
