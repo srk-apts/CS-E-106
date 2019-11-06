@@ -1,0 +1,483 @@
+---
+title: 'CS-E-106: Data Modeling'
+subtitle: '**Midterm Exam**'
+date: '**Due Date:** 10/21/2019'
+author:
+  - '**Instructor: Hakan Gogtas**'
+  - '**Submitted by:** Saurabh Kulkarni'
+output:
+  pdf_document: 
+    latex_engine: xelatex
+---
+
+
+
+**Solution 1:**
+
+*The regression model we want to study:*
+
+$Y_{i} = b_{0} + \epsilon_{i}$
+
+where, $\epsilon_{i} ~ N(\lambda, \sigma^{2})$
+
+
+**(A)**
+
+$f(y_{i}) = f_{i} = \frac{1}{\sqrt{2*\pi}*\sigma}\exp(-\frac{1}{2}(\frac{y_{i}-(\beta_{0}+\lambda)}{\sigma})^{2})$
+
+*Likelihood Function:*
+
+
+$L(\beta_{0},\sigma^{2}) = \prod_{i=1}^{n}f_{i} = (2\pi)^{\frac{-n}{2}}\sigma^{-n}\exp(\frac{-1}{2}\sum_{i=1}^{n}(\frac{y_{i}-(\beta_{0}+\lambda)}{\sigma})^{2})$
+
+
+**(B)**
+
+*Goal:* Choose values $\hat{\beta_{0}}$, $\hat{\sigma^2}$ that maximize L (or l = ln(L)).
+
+$l = \frac{-n}{2}ln(2\pi)-\frac{n}{2}ln(\sigma^{2}) -\frac{1}{2}\sum_{i=1}^{n}(\frac{y_{i}-(\beta_{0}+\lambda)}{\sigma})^{2}$
+
+
+*Calculating optimal $\beta_{0}$:*
+
+$\frac{\partial{l}}{\partial{\beta_{0}}} = 2\sum_{i=1}^{n}(\frac{y_{i}-(\beta_{0}+\lambda)}{\sigma})(-X_{i})=^{set} 0$
+
+$\implies \sum_{i=1}^{n}X_{i}y_{i} = (\beta_{0}+\lambda)\sum_{i=1}^{n}X_{i}$
+
+$\implies \beta_{0} = \frac{\sum_{i=1}^{n}X_{i}y_{i}}{\sum_{i=1}^{n}X_{i}} - \lambda$
+
+*Calculating optimal $\hat{\sigma^2}$:*
+
+$\frac{\partial{l}}{\partial{\sigma^{2}}} = -\frac{n}{2}(\frac{1}{\sigma^{2}})-(-1)\frac{1}{2}\sum_{i=1}^{n}(\frac{y_{i}-(\beta_{0}+\lambda)}{\sigma})^{2} =^{set}0$
+
+
+$\implies \hat{\sigma^{2}} = \frac{\sum_{i=1}^{n}(y_{i}-(\beta_{0}+\lambda))^{2}}{n}$
+
+
+**Solution 2:**
+
+**(A)**
+
+```{r}
+q2_data = read.csv("question2.csv")
+lm_q2 = lm(y~x, data=q2_data)
+summary(lm_q2)
+```
+
+Regression Function: $y = 1201.124 + 47.549*x$
+
+```{r}
+build_residual_qq <- function(lm, df, rse){
+  ei = lm$residuals
+  fitted_values = lm$fitted.values
+  
+  par(mfrow=c(1,1))
+  plot(fitted_values, ei, xlab="Fitted Values", ylab="Residuals")
+  title(main="Fitted Values vs. Residuals")
+  
+  
+  ri = rank(ei)
+  n = nrow(df)
+  zr = (ri-0.375)/(n+0.25)
+  
+  #residual standard error from summary(lm) above
+  zr1 = rse*qnorm(zr)
+  
+  print(cor.test(zr1, ei))
+  
+  plot(zr1, ei, xlab="Expected Value under Normality",ylab="Residuals")
+  title(main="Normal Probability Plot")
+    
+}
+
+build_residual_qq(lm=lm_q2, df=q2_data, rse=1352)
+
+```
+
+
+
+*Interpretation:*
+
+*Fitted vs. Residual Plot:* The residual plot appears to be mostly equally spread and has no distinct patterns. We do see a few outliers. We can say that there is mostly a contant variance in the error term.
+
+*Normal Probability Plot:* The plot is not linear, which means that the error is not in agreement with the normality. 
+
+
+**(B)**
+
+
+**Note:** The question script only read: "Calculate the simultaneous 90% confidence interval for". Assuming we are supposed to calculate a 90% simultaneous confidence intervals for $\beta_{0}$ and $\beta_{1}$ using Bonferroni method.
+
+
+```{r}
+confint(lm_q2, level=1-0.1/2)
+```
+
+**(C)**
+
+```{r}
+Xh = data.frame(x=c(85,90))
+g = nrow(Xh)
+
+alpha = 0.1
+CI.New = predict(lm_q2, Xh, se.fit= TRUE, level = 1-alpha)
+B = qt(1 -alpha / (2*g), lm_q2$df)
+S = sqrt( g * qf( 1 -alpha, g, lm_q2$df))
+spred = sqrt( CI.New$residual.scale^2 + (CI.New$se.fit)^2 ) # (2.38)
+
+print(B)
+print(S)
+
+```
+
+*Interpretation:* We see that Bonferroni is more efficient, since it has tigher limits.
+
+
+```{r}
+pred_new_CI = t(
+rbind(
+"Xh" = array(t(Xh)),
+"s.pred" = array(spred),
+"fit" = array(CI.New$fit),
+"lower.B" = array(CI.New$fit-B * spred),
+"upper.B" = array(CI.New$fit+ B * spred))
+)
+
+pred_new_CI
+```
+
+*Double-check:*
+
+```{r}
+predict(lm_q2, Xh, se.fit= TRUE, interval = "prediction", level = 1-alpha/g)
+```
+
+**(D)**
+
+*Brown-Forsythe Test*
+
+*Note:* Assuming $\alpha = 0.05$, since not specified in part (D).
+
+Null Hypothesis: $H_{0}$: Error variance is constant
+Alternate Hypothesis: $H_{1}$: Error variance is not constant
+
+
+```{r}
+summary(q2_data$x)
+```
+
+
+```{r}
+
+ei = lm_q2$residuals
+df = data.frame(cbind(q2_data$y,q2_data$x,ei))
+df1 = df[df[,2]<=21,]
+df2 = df[df[,2]>21,]
+
+med1 = median(df1[,3])
+med2 = median(df2[,3])
+
+#n1
+n1 = nrow(df1)
+print(n1)
+
+#n2
+n2 = nrow(df2)
+print(n2)
+
+d1 = abs(df1[,3]-med1)
+d2 = abs(df2[,3]-med2)
+
+#calculate means for our answer 
+mean_d1 = mean(d1)
+print(mean_d1)
+mean_d2 = mean(d2)
+print(mean_d2)
+
+s2 = (var(d1)*(n1-1)+var(d2)*(n2-1))/(n1+n2-2)
+print(s2)
+
+#calculate s
+s = sqrt(s2)
+print(s)
+
+#testStastic = (mean.d1 - mean.d2) / (s * sqrt((1/n1)+1/n2)
+testStastic = (mean_d1-mean_d2)/(s*sqrt((1/n1)+(1/n2)))  
+print(testStastic)
+
+t = qt(1-0.05/2, lm_q2$df.residual) 
+print(t)
+
+
+```
+
+*Decision Rule:*
+
+- If $|testStatistic| \leq t(1-\alpha/2,n-2)$, conclude $H_{0}$: constant error variance
+
+- If $|testStatistic| > t(1-\alpha/2,n-2)$, conclude $H_{1}$: non-constant error variance 
+
+*Result:*
+
+Since $|-3.287369| > 1.964778$ i.e. $|testStatistic| > t(1-\alpha/2,n-2)$, we conclude $H_{1}$. The error variance is not constant and thus varies with X.
+
+
+**(E)**
+
+
+```{r}
+library(MASS)
+par(mfrow=c(1,1))
+boxcox(lm_q2)
+
+```
+
+*Interpretation:*
+
+The suggested Y transformation with Box-Cox method is: $\lambda \approx 0$. Thus, we'll assume the suggested $\lambda = 0$ (as suggested in notes Ch.3, slide 77 - "a nearby lambda is easy to understand"), which implies the suggested transformation is: $Y' = log(Y)$. 
+
+
+```{r}
+y1 = log(q2_data$y)
+q2_data = cbind(q2_data, y1)
+
+```
+
+```{r}
+lm_q2_t = lm(y1~x, data=q2_data)
+summary(lm_q2_t)
+```
+
+The regression function using the transformed data = $log(y) = 7.015047 + 0.022357*x$ or $y = \exp(7.015047 + 0.022357*x)$
+
+```{r}
+build_residual_qq(lm=lm_q2_t, df=q2_data, rse=0.6361)
+
+```
+
+
+```{r}
+plot(lm_q2_t)
+```
+
+*Interpretation:*
+
+*Fitted vs. Residual Plot:* The residual plot appears to be mostly equally spread and has no distinct patterns. We still do see a few outliers. We can say that there is mostly a contant variance in the error term.
+
+*Normal Probability Plot:* The plot is mostly linear, which means that the error is mostly in agreement with the normality. This could be due to the approximation we did of the $\lambda$ value we got using Box-Cox method.
+
+
+
+**Solution 3:**
+
+**(A)**
+
+```{r}
+q2_data = read.csv("question2.csv")
+
+```
+
+
+```{r}
+set.seed(1023)
+train_ind = sample(1:nrow(q2_data), 0.7 * nrow(q2_data))
+test_ind = setdiff(1:nrow(q2_data), train_ind)
+train_df = q2_data[train_ind,]
+test_df = q2_data[test_ind,]
+
+```
+
+**(B)**
+
+```{r}
+lm_q3_tr = lm(y~x, data=train_df)
+summary(lm_q3_tr)
+```
+
+Regression Function on development sample: $y = 1257.562 + 47.030*x$
+
+
+```{r}
+build_residual_qq(lm=lm_q3_tr, df=train_df, rse=1398)
+
+```
+
+
+```{r}
+plot(lm_q3_tr)
+```
+
+
+*Interpretation:*
+
+Both plots are very similar to the plots obtained in Q2.A, with similar interpretaions.
+
+*Fitted vs. Residual Plot:* The residual plot appears to be mostly equally spread and has no distinct patterns. We do see a few outliers. We can say that there is mostly a contant variance in the error term.
+
+*Normal Probability Plot:* The plot is not linear, which means that the error is not in agreement with the normality. 
+
+
+**(C)**
+
+```{r}
+yi = test_df$y
+yBar = mean(test_df$y)
+yHat = predict(lm_q3_tr, test_df)
+resids = yi-yHat
+SSE = sum(resids^2)
+SST = sum((yi-yBar)^2)
+
+R2 = 1 - SSE/SST
+
+print(paste("R-squared on hold-out sample:",R2))
+
+```
+
+**Solution 4:**
+
+```{r}
+q4_data = read.csv("question4.csv")
+lm_q4 = lm(Y~X, data=q4_data)
+summary(lm_q4)
+
+```
+
+The regression function: $Y = 156.3466 + 1.1900*X$
+
+```{r}
+build_residual_qq(lm=lm_q4, df=q4_data, rse=8.173)
+```
+
+
+*Interpretation:*
+
+*Fitted vs. Residual Plot:* The residual plot appears to be equally spread and has no distinct patterns and no visible extreme outliers. We can say that there is mostly a contant variance in the error term.
+
+*Normal Probability Plot:* The plot is mostly linear, which means that the error is in agreement with the normality.
+
+
+**(B)**
+
+*Breusch-Pagan Test*
+
+Null Hypothesis: $H_{0}$: Error variance is constant
+Alternate Hypothesis: $H_{1}$: Error variance is not constant
+
+```{r}
+ei = lm_q4$residuals
+ei2 = ei^2
+f = lm(ei2~q4_data$X)
+summary(f)
+
+#to find SSE(R) and SSR(R)
+anova(f)
+
+#to find SSE(F) and SSR(F)
+anova(lm_q4)
+```
+
+
+```{r}
+SSR_R = 31833 
+SSE_R = 400089 
+
+SSR_F = 11627.5
+SSE_F= 3874.4
+
+n = nrow(q4_data)
+
+#chi-squared: [SSR(R)/2] / [SSE(F)/n]^2  
+chiTest = (SSR_R/2) / ((SSE_F/n))^2
+print(chiTest)
+
+
+#p 
+chi = qchisq(1-0.05,1)
+print(chi)
+
+```
+
+Decision Rule:
+
+- If $chiTest \leq \chi^{2}(1-\alpha,1)$, conclude $H_{0}$: constant error variance
+
+- If $chiTest > \chi^{2}(1-\alpha,1)$, conclude $H_{1}$: non-constant error variance 
+
+
+Result:
+Since $3.817167 \leq 3.841459$ i.e. $chiTest \leq \chi^{2}(1-\alpha,1)$, we conclude $H_{0}$. The error variance is constant.
+
+
+
+**Solution 5:** 
+
+**(A)**
+
+*Given:*
+
+```{r}
+n = 45
+F = 970
+MSE = 80
+
+```
+
+$F = \frac{MSR}{MSE}$
+
+```{r}
+MSR = F*MSE
+MSR
+```
+
+$MSE = \frac{SSE}{n-2}$
+
+```{r}
+SSE = MSE*(n-2)
+SSE
+```
+
+
+```{r}
+SSR = MSR/1
+SSR
+```
+
+
+```{r}
+df_R = n-2
+df_E = 1
+
+print(df_R)
+print(df_E)
+```
+
+**(B)**
+
+```{r}
+R2 = 1 - SSE/(SSR+SSE)
+R2
+```
+
+*Interpretation:* We get an R-squared value of 0.96 i.e. 95.7% of the variation in Y is explained by the independent variable X. Thus, the model is statistically significant based on $R^2$ value. 
+
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+

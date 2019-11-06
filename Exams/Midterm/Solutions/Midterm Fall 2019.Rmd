@@ -1,0 +1,278 @@
+---
+title: "Fall 2019 Midterm Solutions"
+output:
+  pdf_document: default
+  html_document: default
+---
+## Question 1 
+
+_1-) The regression model we would like to study is:_
+
+$$ Y_i =  \beta_0 + \varepsilon_i$$
+
+_a-)write the likelihood function_
+
+
+$$L =  \prod_{i=1}^n \frac{1}{\sqrt{2\pi\sigma^2}}exp\left(-\frac{(Y_i-\beta_0 - \lambda)^2}{2\sigma^2}\right) $$
+
+_b-)find the MLE estimations for $b_0$ and $\sigma^2$_
+
+Log-likelihood function
+
+$$Log L = -\frac{n}{2}log2\pi-\frac{n}{2}log\sigma^2 -\frac{1}{2\sigma^2} \sum_{i=1}^n (Y_i-\beta_0 -\lambda)^2 $$
+
+$$ \frac{\partial L}{\partial \beta_0}=\sum_{i=1}^n (Y_i-\beta_0 -\lambda)=0 $$
+$$\beta_0= \sum_{i=1}^n Y_i-n\beta_{0}-n\lambda =0  $$
+$$\beta_0= \bar{Y}-\lambda$$
+$$ \frac{\partial L}{\partial \sigma}=-\frac{n}{\sigma}+\frac{1}{\sigma^3}\sum_{i=1}^n (Y_i-\beta_0 -\lambda)^2=0 $$
+$$ \sigma^2=\frac{\sum_{i=1}^n (Y_i-\hat{\beta_0} -\lambda)^2}{n}$$
+
+## Problem 2
+
+###	a-)Fit a regression model to predict $Y$. Obtain, the residuals and plot them against the fitted values. Also prepare a normal probability plot. What do your plots show? (5pts)
+
+###	b-)	Calculate the simultaneous 90% confidence interval for  $\beta_0$,and $\beta_1$ (5pts)
+
+###	c-)	Calculate the simultaneous 90% confidence intervals for the predicted new X values for 85 and 90. (5 pts)
+
+###	d-)	Conduct the Brown-Forsythe test to determine whether or not the error variance varies with the level of $X$. (10 pts)
+
+###	e-)	Use the Box-Cox procedure to find an appropriate power transformation and perform the transformation.  Obtain, the residuals and plot them against the fitted values. Also prepare a normal probability plot. What do your plots show? (15 pts)
+
+###	a-)Fit a regression model to predict $Y$. Obtain, the residuals and plot them against the fitted values. Also prepare a normal probability plot. What do your plots show? (5pts)
+
+
+```{r}
+library(knitr)
+question2 <- read.csv("/cloud/project/question2.csv")
+f2<-lm(y~x,data=question2)
+summary(f2)
+anova(f2)
+ei<-f2$residuals
+yhat<-f2$fitted.values
+par(mfrow=c(1,2))
+plot(yhat,ei,ylab="Errors",xlab="Fitted Values")
+stdei<- rstandard(f2)
+qqnorm(stdei,ylab="Standardized Residuals",xlab="Normal Scores", main="QQ Plot")
+qqline(stdei,col = "steelblue", lwd = 2)
+```
+
+Solution: R Square is 17% and the model is significant. Error vs. Fitted values graph indicates unequal variances. QQ plot indicates departures from normality.
+
+
+###	b-)	Calculate the simultaneous 90% confidence interval for  $b_0$,and $b_1$ (5pts)
+
+Solution: See below for the simultaneous 90% confidence interval for  
+$b_0$,and $b_1$ 
+
+```{r}
+confint(f2,level=1-0.10/2)
+```
+
+
+###	c-)	Calculate the simultaneous 90% confidence intervals for the predicted new X values for 85 and 90. (5 pts) 
+
+
+Solution: see below for the simultaneous 90% confidence intervals for the predicted new X values for 85 and 90.
+
+
+
+```{r}
+Xh<-c(85,90)
+predict(f2,data.frame(x= c(Xh)),interval = "prediction", level = 1-0.10/2)
+```
+
+###	d-)	Conduct the Brown-Forsythe test to determine whether or not the error variance varies with the level of X. (10 pts)
+
+Solution: 
+
+$H_0$: the error variance is constant
+
+$H_A$: the error variance is NOT constant 
+
+Based on the Brown Forsythe test, p-value is 0.00116009. Reject $H_0$, and
+conclude $H_1$, the error variance is NOT constant.
+
+
+```{r}
+ei<-f2$residuals
+M=median(question2$x)
+DM<-data.frame(cbind(question2$y,question2$x,ei))
+DM1<-DM[DM[,2]< M,]
+DM2<-DM[DM[,2]>=M,]
+
+M1<-median(DM1[,3])
+M2<-median(DM2[,3])
+N1<-length(DM1[,3])
+N2<-length(DM2[,3])
+
+d1<-abs(DM1[,3]-M1)
+d2<-abs(DM2[,3]-M2)
+s2<-sqrt((var(d1)*(N1-1)+var(d2)*(N2-1))/(N1+N2-2))
+Den<- s2*sqrt(1/N1+1/N2)
+Num<- mean(d1)-mean(d2)
+T= Num/Den
+T
+2*pt(T,df=N1+N2-2)
+```
+
+
+###	e-)	Use the Box-Cox procedure to find an appropriate power transformation and perform the transformation.  Obtain, the residuals and plot them against the fitted values. Also prepare a normal probability plot. What do your plots show? (15 pts)
+
+Solution: it looks like $\lambda$ is 0.32. However, you could take $\lambda$ 0.5 (square root transformation) or $\lambda$ is 0 (log transformation) to make it easier. We used $\lambda$ 0.32. After transformation, QQ plots look normal. However, error vs predicted graph still shows a V shape. Unequal variances still persists. 
+
+```{r}
+library(MASS)
+boxcox(f2,lambda=seq(-2,2,by=0.1))
+boxcox(f2,lambda=seq(0.2,0.4,by=0.1))
+f2.1<-lm(y^0.32~x,data=question2)
+ei<-f2.1$residuals
+yhat<-f2.1$fitted.values
+par(mfrow=c(1,2))
+plot(yhat,ei,ylab="Errors",xlab="Fitted Values")
+stdei<- rstandard(f2.1)
+qqnorm(stdei,ylab="Standardized Residuals",xlab="Normal Scores", main="QQ Plot")
+qqline(stdei,col = "steelblue", lwd = 2)
+```
+
+
+## Problem 3
+
+
+### Refer to the question 2 data. (25 pts) 
+### a)	Create development sample and hold out sample. Development sample is a random sample of 70% of the data and hold out sample is the remainder 30% of the data. Use set.seed(1023) to select the samples. (10 pts)
+### b)	Build the model on the development sample (a random sample of 70% of the data and use set.seed(1023) to select the sample). Obtain, the residuals and plot them against the fitted values. Also prepare a normal probability plot. What do your plots show? (5 pts)
+### c)	Calculate R Square on the hold out sample (hint: calculate SSE, SSR and SST on the hold out sample). (10 pts)
+
+### a)	Create development sample and hold out sample. Development sample is a random sample of 70% of the data and hold out sample is the remainder 30% of the data. Use set.seed(1023) to select the samples. (10 pts)
+
+Solution: please see below
+
+```{r}
+set.seed(1023)
+ind <- sample(1:nrow(question2), size =nrow(question2)*0.70)
+dev <- question2[ind,]
+holdout <- question2[-ind,]
+```
+
+### b)	Build the model on the development sample (a random sample of 70% of the data and use set.seed(1023) to select the sample). Obtain, the residuals and plot them against the fitted values. Also prepare a normal probability plot. What do your plots show? (5 pts)
+
+Solution: R Square is 19% and the model is significant. Error vs. Fitted values graph indicates unequal variances. QQ plot indicates departures from normality. Same conclucions as question 2 par a.
+
+```{r}
+f2.2<-lm(y~x,data=dev)
+summary(f2.2)
+ei<-f2.2$residuals
+yhat<-f2.2$fitted.values
+par(mfrow=c(1,2))
+plot(yhat,ei,ylab="Errors",xlab="Fitted Values")
+stdei<- rstandard(f2.2)
+qqnorm(stdei,ylab="Standardized Residuals",xlab="Normal Scores", main="QQ Plot")
+qqline(stdei,col = "steelblue", lwd = 2)
+```
+
+### c)	Calculate R Square on the hold out sample (hint: calculate SSE, SSR and SST on the hold out sample). (10 pts)
+
+
+```{r}
+SST<-var(holdout$y)*(length(holdout$y)-1)
+yhat<-predict(f2.2,holdout)
+ei<-holdout$y-yhat
+SSE<-sum(ei^2)
+R.SQ=1-(SSE/SST)
+R.SQ
+```
+
+Solution: R Square is 15.8%. it decreased from 17% on the holdout sample. Indicating that the model perfomance is not stable.
+
+
+## Problem 4.	
+### Refer to question 4 data set. (15 pts)
+### a)Fit a linear regression function. Obtain, the residuals and plot them against the fitted values. Also prepare a normal probability plot. What do your plots show? (5 pts)
+### b)Conduct the Breusch-Pagan test to determine whether or not the error variance varies with the level of $X$. Use $alpha=$ .05. State the alternatives. decision rule, and conclusion. Is your conclusion consistent with your preliminary findings in part (a)? (10 pts)
+
+### a)Fit a linear regression function. Obtain, the residuals and plot them against the fitted values. Also prepare a normal probability plot. What do your plots show? (5 pts)
+
+Solution: R Square is 75% and the model is significant. Error vs. Fitted values graph indicate unequal variances. QQ plot looks approximately normal.
+
+```{r}
+question4 <- read.csv("/cloud/project/question4.csv")
+f4<-lm(Y~X,data=question4)
+summary(f4)
+ei<-f4$residuals
+yhat<-f4$fitted.values
+par(mfrow=c(1,2))
+plot(yhat,ei,ylab="Errors",xlab="Fitted Values")
+stdei<- rstandard(f4)
+qqnorm(stdei,ylab="Standardized Residuals",xlab="Normal Scores", main="QQ Plot")
+qqline(stdei,col = "steelblue", lwd = 2)
+```
+
+### b)Conduct the Breusch-Pagan test to determine whether or not the error variance varies with the level of X. Use $alpha=$ .05. State the alternatives. decision rule, and conclusion. Is your conclusion consistent with your preliminary findings in part (a)? (10 pts)
+
+
+Solution: 
+
+$H_0$: $\gamma$ is 0
+$H_A$: $\gamma$ is NOT 0
+
+R Square is 7% and the model is significant. Additionally, chi-square test (refer to equation 3.11 on the book) is not rejected (below 5% p-value). Variances are equal.
+
+```{r}
+ei2<-(f4$residuals)^2
+f4.1<-lm(ei2~question4$X)
+summary(f4.1)
+anova(f4.1)
+anova(f4)
+chi.test=(31833/2)/((3874.4/60)^2)
+chi.test
+qchisq(.95,1)
+pchisq(chi.test,1)
+```
+
+
+
+## Problem 5. The simple linear regression model was built on 45 observation
+### a)	Complete the ANOVA table below (5pts)
+### b)	Calculate R square, is the model statistically significant?  (5pts)
+
+### a)	Complete the ANOVA table below (5pts)
+
+```{r}
+kable(data.frame(Source = c("Regression","Error","Total"), DF = c("","", ""), SS=c("","",""),MS = c("","80",""), F = c("970", "", ""))) 
+```
+
+
+
+```{r}
+MSR=970*80
+SSE= 43*80
+SST=SSE+MSR
+cbind(MSR,SSE,SST)
+```
+
+```{r}
+kable(data.frame(Source = c("Regression","Error","Total"), DF = c("1","43", "44"), SS=c("77600","3440","81040"),MS = c("77600","80",""), F = c("970", "", ""))) 
+```
+
+
+### b)	Calculate R square, is the model statistically significant?  (5pts)
+
+
+
+```{r}
+R.SQ =77600/81040
+R.SQ
+1-pf(970,1,43)
+```
+
+Solution: 
+ R Square is 0.957%. 
+ Ho:B_1=0
+ Ha:B_1
+
+ F = 970, too large and pvalue=0.00, reject null, model is significant.
+
+
+
+
