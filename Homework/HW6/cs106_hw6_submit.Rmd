@@ -1,0 +1,224 @@
+---
+title: '**CS-E-106: Data Modeling**'
+subtitle: '**Assignment 6**'
+date: '**Due Date:** 11/11/2019'
+author:
+  - '**Instructor: Hakan Gogtas**'
+  - '**Submitted by:** Saurabh Kulkarni'
+output: pdf_document
+---
+
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(tidy.opts=list(width.cutoff=80), 
+                      fig.width=10, fig.height=5)
+
+loadLib = function(libName)
+{
+    if(require(libName, character.only=TRUE))
+    {
+        cat(libName, "loaded properly\n")
+    } else {
+        cat("Installing", libName, "\n")
+        install.packages(libName)
+        if(require(libName, character.only=TRUE))
+        {
+            cat(libName, "loaded properly\n")
+        } else {
+            stop(c(libName, "not properly installed\n"))
+        }
+    }
+}
+
+libs = c("ggplot2", "knitr", "MASS", "ggcorrplot", "GGally", "alr3", "lattice")
+
+for (lib in libs)
+{
+    loadLib(lib)
+}
+
+```
+
+
+
+**Question 1:**
+
+1-	An analyst wanted to fit the regression model $Y_i = \beta_0 +\beta_1*X_{i1}+\beta_2*X_{i2}+\beta_1*X_{i3}+\epsilon_i$,
+i = 1, ... , n, by the method of least squares when it is known that $\beta_2=4$. How can the analyst obtain the desired fit by using a multiple regression computer program?
+
+**Solution 1:**
+
+
+*Step 1:* Create a 
+
+
+
+**Solution 2:**
+
+**(a)** Obtain the analysis of variance table that decomposes the regression sum of squares into extra sums of squares associated with X4; with X1 given X4; with X2 , given X1 and X4; and with X3 , given X1, X2 and X4. (10pts)
+
+```{r}
+properties_data = read.csv("Commercial Properties.csv")
+lm_prop = lm(Y~X4+X1+X2+X3, data=properties_data)
+summary(lm_prop)
+```
+
+
+```{r}
+anova_F = anova(lm_prop)
+anova_F
+
+anovaTable = data.frame(anova_F)
+totals = c(round(sum(anovaTable[,1])), round(sum(anovaTable[,2])), "", "", "")
+anovaTable = rbind(anovaTable, totals)
+
+#add names to the table 
+row.names(anovaTable) = c("SSR(X4)", "SSR(X1|X4)", "SSR(X2|(X4X1))","SSR(X3|(X4X1X2))", "SSE", "Total")
+colnames(anovaTable) = c("DF", "Sum Sq.", "Mean Sq.", "F-Value", "Pr(>F)")
+
+kable(anovaTable)
+
+```
+
+
+**(b)**	
+
+From the above ANOVA table, we can see that the P-value for SSR(X3|X4X1X2) is very high, which means that the extra regression sums of squares due to X3 is very low. Thus, X3 can be dropped. F-test below.
+
+
+```{r}
+ssr = as.numeric(anovaTable["SSR(X3|(X4X1X2))","Sum Sq."])
+sse = as.numeric(anovaTable["SSE","Sum Sq."])
+df_diff = 1
+df_E = as.numeric(anovaTable["SSE","DF"])
+
+FStar = (ssr/df_diff) / (sse/df_E)
+print(FStar)
+
+print(paste("P-value:", 1-pf(FStar, df_diff, df_E)))
+
+#alpha is given
+alpha = 0.01
+
+# df from Summary above in a
+FTest = qf(1-alpha, df_diff, df_E)
+print(FTest)
+```
+
+
+*Hypotheses:*
+
+$H_0: \beta_3 = 0$ 
+
+$H_a: \beta_3 \neq 0$ 
+
+
+*Decision Rules:*
+
+If $F^* \leq$ `r FTest`, conclude $H_0$
+
+If $F^* >$ `r FTest`, conclude $H_a$
+
+*Conclusion:*
+
+Since our test statistic, $F^* =$ `r FStar`, and `r FStar` $\leq$ `r FTest`, we conclude $H_0$. Thus, X3 can be dropped from the model.
+
+
+**(c)**	Test whether both X2 and X3 can be dropped from the regression model given that X1 and X4 are retained; use α=.01. State the alternatives, decision rule, and conclusion. What is the P-value of the test? (5pts)
+
+
+
+```{r}
+ssr = sum(as.numeric(anovaTable[c("SSR(X3|(X4X1X2))","SSR(X2|(X4X1))"),"Sum Sq."]))
+sse = as.numeric(anovaTable["SSE","Sum Sq."])
+
+df_diff = 2
+df_E = as.numeric(anovaTable["SSE","DF"])
+
+FStar = (ssr/df_diff) / (sse/df_E)
+print(FStar)
+
+print(paste("P-value:", 1-pf(FStar, df_diff, df_E)))
+
+#alpha is given
+alpha = 0.01
+
+# df from Summary above in a
+FTest = qf(1-alpha, df_diff, df_E)
+print(FTest)
+
+```
+
+*Hypotheses:*
+
+$H_0: \beta_2 = \beta_3 = 0$ 
+
+$H_a:$ Not both $\beta$s equal to zero
+
+
+*Decision Rules:*
+
+If $F^* \leq$ `r FTest`, conclude $H_0$
+
+If $F^* >$ `r FTest`, conclude $H_a$
+
+*Conclusion:*
+
+Since our test statistic, $F^* =$ `r FStar`, and `r FStar` $>$ `r FTest`, we conclude $H_1$. Not both $\beta$s equal to zero.
+
+
+**(d)**
+
+
+```{r}
+Y_new = properties_data$Y+0.1*properties_data$X1-0.4*properties_data$X2
+lm_prop_R = lm(Y_new~properties_data$X3+properties_data$X4)
+summary(lm_prop_R)
+```
+
+
+```{r}
+anova_R = anova(lm_prop_R)
+anova_R
+```
+
+
+```{r}
+SSE_R = anova_R["Residuals", "Sum Sq"]
+SSE_F = anova_F["Residuals", "Sum Sq"]
+df_R = anova_R["Residuals", "Df"]
+df_F = anova_F["Residuals", "Df"]
+
+FStar = ((SSE_R-SSE_F)/(df_R-df_F))/(SSE_F/df_F)
+print(FStar)
+
+#alpha is given
+alpha = 0.01
+
+# df from Summary above in a
+FTest = qf(1-alpha, (df_R-df_F), df_F)
+print(FTest)
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+
+
+
+
