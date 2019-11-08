@@ -5,7 +5,9 @@ date: '**Due Date:** 11/11/2019'
 author:
   - '**Instructor: Hakan Gogtas**'
   - '**Submitted by:** Saurabh Kulkarni'
-output: pdf_document
+output: 
+  pdf_document: 
+    latex_engine: xelatex
 ---
 
 
@@ -31,7 +33,7 @@ loadLib = function(libName)
     }
 }
 
-libs = c("ggplot2", "knitr", "MASS", "ggcorrplot", "GGally", "alr3", "lattice")
+libs = c("ggplot2", "knitr", "MASS", "ggcorrplot", "GGally", "alr3", "lattice", "dplyr")
 
 for (lib in libs)
 {
@@ -50,7 +52,10 @@ i = 1, ... , n, by the method of least squares when it is known that $\beta_2=4$
 **Solution 1:**
 
 
-*Step 1:* Create a 
+*Step 1:* Create a new variable $Y^* = Y_i-\beta_2*X_{i2} = Y_i-4*X_{i2}$
+*Step 2:* Using $Y^*$ as the new response variable, run the regression model: 
+$Y^* = \beta_0 +\beta_1*X_{i1}+\beta_1*X_{i3}+\epsilon_i$ using least squares (Using R functions: lm(YStar~X1+X3, data)).
+*Step 3:* Use the obtained coefficients as $\beta_1$ and $\beta_3$, assuming $\beta_2=4$
 
 
 
@@ -201,6 +206,207 @@ FTest = qf(1-alpha, (df_R-df_F), df_F)
 print(FTest)
 ```
 
+**Solution 3:**
+
+**(a)**
+
+```{r}
+standardize_corr = function(df){
+  cols = colnames(df)
+  df_new = df
+  n = nrow(df)
+  for(c in cols){
+    mu = mean(df[, c])
+    s = sqrt(var(df[, c]))
+    df_new[, c] = (df[, c]-mu)/(s*sqrt(n-1))
+  }
+  df_new
+}
+```
+
+```{r}
+brand_data = read.csv("Brand Preference.csv")
+brand_data_new = standardize_corr(brand_data)
+summary(brand_data_new)
+```
+
+```{r}
+lm_brand_new = lm(Y~., data=brand_data_new)
+summary(lm_brand_new)
+```
+
+$\beta_0$ is almost 0. Thus,
+
+Regression Function: $Y = 0.892*X_1 + 0.3946*X_2$
+
+```{r}
+lm_brand = lm(Y~., data=brand_data)
+```
+
+
+```{r}
+library(QuantPsyc)
+lm.beta(lm_brand)
+```
+
+**(b)**
+
+*Interpretation:*
+
+- We can see that the $\beta_0$ is almost equal to 0, which is expected since Y is now centered at 0 (based on definition and summary of the new data in part (a)).
+- 
+
+**(c)**
+
+
+```{r}
+lm_brand$coefficients
+```
+
+
+**(d)**
+
+
+```{r}
+df = brand_data
+
+R2_Y1 = anova(lm(Y~X1, data=df))[1,2]/sum(anova(lm(Y~X1, data=df))[1:2,2])
+
+R2_Y2 = anova(lm(Y~X2, data=df))[1,2]/sum(anova(lm(Y~X2, data=df))[1:2,2])
+
+R2_12 = sum(anova(lm(Y~X1+X2, data=df))[1:2,2])/sum(anova(lm(Y~X1+X2, data=df))[1:3,2])
+
+R2_Y1_2 = anova(lm(Y~X2+X1, data=df))[2,2]/sum(anova(lm(Y~X2+X1, data=df))[2:3,2])
+
+R2_Y2_1 = anova(lm(Y~X1+X2, data=df))[2,2]/sum(anova(lm(Y~X1+X2, data=df))[2:3,2])
+
+R2 = R2_12
+
+```
+
+$R_{Y1}^2 =$ `r R2_Y1`
+
+$R_{Y2}^2 =$ `r R2_Y2`
+
+$R_{12}^2 =$ `r R2_12`
+
+$R_{Y1|2}^2 =$ `r R2_Y1_2`
+
+$R_{Y2|1}^2 =$ `r R2_Y2_1`
+
+$R^2 =$ `r R2`
+
+**Solution 4:**
+
+**(a)**
+
+```{r}
+inc_cols = c("Number.of.active.physicians", "Total.population", "Total.personal.income",
+             "Land.area", "Percent.of.population.65.or.older", "Number.of.hospital.beds", 
+             "Total.serious.crimes")
+cdi_data = read.csv("CDI.csv")[, inc_cols]
+colnames(cdi_data)
+```
+
+
+
+```{r}
+cdi_data = 
+cdi_data %>%
+  rename(
+    Y = Number.of.active.physicians,
+    X1 = Total.population,
+    X2 = Total.personal.income,
+    X3 = Land.area,
+    X4 = Percent.of.population.65.or.older, 
+    X5 = Number.of.hospital.beds,
+    X6 = Total.serious.crimes
+  )
+
+colnames(cdi_data)
+```
+
+
+```{r}
+lm_cdi = lm(Y~X1+X2, data=cdi_data)
+summary(lm_cdi)
+```
+
+
+```{r}
+df = cdi_data
+
+print(anova(lm(Y~X1+X2+X3,df)))
+(r2_X3 = anova(lm(Y~X1+X2+X3,df))[3,2]/sum(anova(lm(Y~X1+X2+X3,df))[3:4,2]))
+print(anova(lm(Y~X1+X2+X4,df)))
+(r2_X4 = anova(lm(Y~X1+X2+X4,df))[3,2]/sum(anova(lm(Y~X1+X2+X4,df))[3:4,2]))
+print(anova(lm(Y~X1+X2+X5,df)))
+(r2_X5 = anova(lm(Y~X1+X2+X5,df))[3,2]/sum(anova(lm(Y~X1+X2+X5,df))[3:4,2]))
+print(anova(lm(Y~X1+X2+X6,df)))
+(r2_X6 = anova(lm(Y~X1+X2+X6,df))[3,2]/sum(anova(lm(Y~X1+X2+X6,df))[3:4,2]))
+
+```
+
+$R_{3|12}^2 =$ `r r2_X3`
+
+$R_{4|12}^2 =$ `r r2_X4`
+
+$R_{5|12}^2 =$ `r r2_X5`
+
+$R_{6|12}^2 =$ `r r2_X6`
+
+
+**(b)**
+
+$X_5$ is the best predictor we can add to the model as it has the maximum coefficient of partial determination. Yes, the extra sum of squares associated with this variable is larger compared to other variables also, which makes sense since SST will remain constant.
+
+
+**(c)**
+
+```{r}
+anova_x5 = anova(lm(Y~X1+X2+X5, data=cdi_data))
+anova_x5
+```
+
+
+```{r}
+ssr = as.numeric(anova_x5["X5","Sum Sq"])
+sse = as.numeric(anova_x5["Residuals","Sum Sq"])
+df_diff = 1
+df_E = as.numeric(anova_x5["Residuals","Df"])
+
+FStar = (ssr/df_diff) / (sse/df_E)
+print(FStar)
+
+print(paste("P-value:", 1-pf(FStar, df_diff, df_E)))
+
+#alpha is given
+alpha = 0.01
+
+# df from Summary above in a
+FTest = qf(1-alpha, df_diff, df_E)
+print(FTest)
+
+```
+
+*Hypotheses:*
+
+$H_0: \beta_5 = 0$ 
+
+$H_a: \beta_5 \neq 0$ 
+
+
+*Decision Rules:*
+
+If $F^* \leq$ `r FTest`, conclude $H_0$
+
+If $F^* >$ `r FTest`, conclude $H_a$
+
+*Conclusion:*
+
+Since our test statistic, $F^* =$ `r FStar`, and `r FStar` $\leq$ `r FTest`, we conclude $H_0$. Thus, X3 can be dropped from the model.
+
+
 
 ```{r}
 ```
@@ -218,6 +424,12 @@ print(FTest)
 ```
 
 
+```{r}
+```
+
+
+```{r}
+```
 
 
 
