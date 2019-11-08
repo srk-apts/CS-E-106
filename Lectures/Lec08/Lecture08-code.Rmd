@@ -1,0 +1,30 @@
+---
+title: "Lecture08-code"
+output: pdf_document
+---
+
+```{r}
+power.cells <- read.csv("power cells.csv")
+Y<-power.cells$Y
+X1<-power.cells$X1
+X2<-power.cells$X2
+X1c<-(X1-mean(X1))/0.4
+X2c<-(X2-mean(X2))/10
+X1c2<-X1c^2
+X2c2<-X2c^2
+X1X2c<-X1c*X2c
+f2<-lm(Y~X1c+X2c+X1c2+X2c2+X1X2c)
+summary(f2)
+anova(f2)
+library(alr3)
+pureErrorAnova(f2)
+f2R<-lm(Y~X1c+X2c)
+summary(f2R)
+anova(f2R,f2)
+```
+
+
+
+```{r}
+```
+
