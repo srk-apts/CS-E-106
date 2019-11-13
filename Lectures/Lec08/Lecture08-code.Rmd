@@ -3,6 +3,46 @@ title: "Lecture08-code"
 output: pdf_document
 ---
 
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(tidy.opts=list(width.cutoff=80), 
+                      fig.width=10, fig.height=5)
+
+loadLib = function(libName)
+{
+    if(require(libName, character.only=TRUE))
+    {
+        cat(libName, "loaded properly\n")
+    } else {
+        cat("Installing", libName, "\n")
+        install.packages(libName)
+        if(require(libName, character.only=TRUE))
+        {
+            cat(libName, "loaded properly\n")
+        } else {
+            stop(c(libName, "not properly installed\n"))
+        }
+    }
+}
+
+libs = c("ggplot2", "knitr", "MASS", "ggcorrplot", "GGally", "alr3", "lattice", "dplyr", "ALSM")
+
+for (lib in libs)
+{
+    loadLib(lib)
+}
+
+```
+
+```{r}
+help("data")
+```
+
+```{r}
+data("SurgicalUnit")
+data
+```
+
 ```{r}
 power.cells <- read.csv("power cells.csv")
 Y<-power.cells$Y
@@ -16,15 +56,21 @@ X1X2c<-X1c*X2c
 f2<-lm(Y~X1c+X2c+X1c2+X2c2+X1X2c)
 summary(f2)
 anova(f2)
-library(alr3)
-pureErrorAnova(f2)
-f2R<-lm(Y~X1c+X2c)
-summary(f2R)
-anova(f2R,f2)
+
 ```
 
 
 
 ```{r}
+library(alr3)
+pureErrorAnova(f2)
+
+```
+
+
+```{r}
+f2R<-lm(Y~X1c+X2c)
+summary(f2R)
+anova(f2R,f2)
 ```
 
