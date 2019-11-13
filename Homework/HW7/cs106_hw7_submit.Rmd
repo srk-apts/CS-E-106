@@ -1,0 +1,237 @@
+---
+title: '**CS-E-106: Data Modeling**'
+subtitle: '**Assignment 7**'
+date: '**Due Date:** 11/18/2019'
+author:
+  - '**Instructor: Hakan Gogtas**'
+  - '**Submitted by:** Saurabh Kulkarni'
+output: 
+  pdf_document: 
+    latex_engine: xelatex
+---
+
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(tidy.opts=list(width.cutoff=80), 
+                      fig.width=10, fig.height=5)
+
+loadLib = function(libName)
+{
+    if(require(libName, character.only=TRUE))
+    {
+        cat(libName, "loaded properly\n")
+    } else {
+        cat("Installing", libName, "\n")
+        install.packages(libName)
+        if(require(libName, character.only=TRUE))
+        {
+            cat(libName, "loaded properly\n")
+        } else {
+            stop(c(libName, "not properly installed\n"))
+        }
+    }
+}
+
+libs = c("ggplot2", "knitr", "MASS", "ggcorrplot", "GGally", "alr3", "lattice", "dplyr", "ALSM")
+
+for (lib in libs)
+{
+    loadLib(lib)
+}
+
+```
+
+
+
+**Question 1:** Refer to the CDI data set. A regression model relating serious crime rate (Y, total serious crimes divided by total population) to population density (X1, total population divided by land area) and unemployment rate (X3) is to be constructed. (15 pts)
+
+**(a)** Fit second-order regression model (equation 8.8 on the book). Plot the residuals against the fitted values. How well does the second-order model appear to fit the data? What is R2? (5pts)
+
+**Solution:**
+
+```{r}
+cdi_data = read.csv("CDI.csv")
+Y = cdi_data$Total.serious.crimes/cdi_data$Total.population
+X1 = cdi_data$Total.population/cdi_data$Land.area
+X3 = cdi_data$Percent.unemployment
+
+x1 = (X1-mean(X1))/sqrt(var(X1))
+x3 = (X3-mean(X3))/sqrt(var(X3))
+x1sqr = x1^2
+x3sqr = x3^2
+x1x3 = x1*x3
+
+```
+
+
+```{r}
+lm_cdi_1a = lm(Y~x1+x3+x1sqr+x3sqr+x1x3)
+summary(lm_cdi_1a)
+```
+
+
+```{r}
+ei = lm_cdi_1a$residuals
+fitted_values = lm_cdi_1a$fitted.values
+plot(ei, fitted_values)
+```
+
+**(b)** Test whether or not all quadratic and interaction terms can be dropped from the regression model; use α = .01. State the alternatives, decision rule, and conclusion. (5pts)
+
+**Solution:**
+
+```{r}
+lm_cdi_1b = lm(Y~x1+x3)
+summary(lm_cdi_1b)
+```
+
+
+```{r}
+anova(lm_cdi_1b, lm_cdi_1a)
+```
+
+
+```{r}
+FStar = 3.2159 # from above anova 
+df_diff = 3
+df_E = lm_cdi_1b$df.residual
+alpha = 0.01
+FTest = qf(1-alpha, df_diff, df_E)
+print(FTest)
+```
+
+
+*Hypotheses:*
+
+$H_0: \beta_{11} = \beta_{22} = \beta_{12} = 0$ 
+
+$H_a:$ Not all $\beta$'s are equal to zero
+
+
+*Decision Rules:*
+
+If $F^* \leq$ `r FTest`, conclude $H_0$
+
+If $F^* >$ `r FTest`, conclude $H_a$
+
+*Conclusion:*
+
+Since our test statistic, $F^* =$ `r FStar`, and `r FStar` $\leq$ `r FTest`, we conclude $H_0$. Thus, we can remove all the quadratic and interaction terms.
+
+
+**(c)** Instead of the predictor variable population density, total population (X1) and land area (X2) are to be employed as separate predictor variables, in addition to unemployment rate (X3). The regression model should contain linear and quadratic terms for total population, and linear terms only for land area and unemployment rate. (No interaction terms are to be included in this model.) Fit this regression model and obtain R2. Is this coefficient of multiple determination substantially different from the one for the regression model in part a? (5pts)
+
+**Solution:**
+
+```{r}
+
+X1 = cdi_data$Total.population
+X2 = cdi_data$Land.area
+X3 = cdi_data$Percent.unemployment
+
+x1 = (X1-mean(X1))/sqrt(var(X1))
+x2 = (X2-mean(X2))/sqrt(var(X2))
+x3 = (X3-mean(X3))/sqrt(var(X3))
+x1sqr = x1^2
+
+```
+
+
+```{r}
+lm_cdi_1c = lm(Y~x1+x2+x3+x1sqr)
+summary(lm_cdi_1c)
+```
+
+
+```{r}
+anova(lm_cdi_1c, lm_cdi_1a)
+```
+
+**Question 2** Refer to the CDI data set. The number of active physicians (Y) is to be regressed against total population (X1), total personal income (X2), and geographic region (X3, X4, X5). (15pts)
+
+**(a)** Fit a first-order regression model. Let X3 =1 if NE and 0 otherwise, X4 = 1 if NC and 0 otherwise, and X5 = 1I if S and 0 otherwise. (5pts)
+
+
+**Solution:**
+
+```{r}
+Y = cdi_data$Number.of.active.physicians
+X1 = cdi_data$Total.population
+X2 = cdi_data$Total.personal.income
+
+X3 = which(cdi_data$Geographic.region=="NE")
+
+```
+
+
+```{r}
+levels(as.factor(cdi_data$Geographic.region))
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+**Quuestion 3** Refer to the Lung pressure Data. Increased arterial blood pressure in the lungs frequently leads to the development of heart failure in patients with chronic obstructive pulmonary disease (COPD). The standard method for determining arterial lung pressure is invasive, technically difficult, and involves some risk to the patient. Radionuclide imaging is a noninvasive, less risky method for estimating arterial pressure in the lungs. To investigate the predictive ability of this method, a cardiologist collected data on 19 mild-to-moderate COPD patients. The data includes the invasive measure of systolic pulmonary arterial pressure (Y) and three potential noninvasive predictor variables. Two were obtained by using radionuclide imaging emptying rate of blood into the pumping chamber or the heart (X1) and ejection rate of blood pumped out of the heart into the lungs (X2) and the third predictor variable measures blood gas (X3). (25pts)
+
+
+**(a)** Fit the multiple regression function containing the three predictor variables us first-order terms. Does it appear that all predictor variables should be retained? (5pts)
+
+**Solution:**
+
+```{r}
+lung_data = read.csv("Lung Pressure.csv")
+lm_lung_2a = lm(Y~X1+X2+X3, data=lung_data)
+summary(lm_lung_2a)
+```
+
+
+```{r}
+df = lung_data
+
+X1 = lung_data$X1
+X2 = lung_data$X2
+X3 = lung_data$X3
+
+x1 = (X1-mean(X1))/sqrt(var(X1))
+x2 = (X2-mean(X2))/sqrt(var(X2))
+x3 = (X3-mean(X3))/sqrt(var(X3))
+x1sqr = X1^2
+x2sqr = X2^2
+x3sqr = X3^2
+x1x2 = X1*X2
+x1x3 = X1*X3
+x2x3 = X2*X3
+
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+
+
+
+
