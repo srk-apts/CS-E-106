@@ -1,0 +1,88 @@
+---
+title: "Chapter 9"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r}
+library(knitr)
+Surgical.Unit <- read.csv("/cloud/project/Surgical Unit.csv")
+
+#backward elimination
+model<-lm(lnY ~X1+X2+X3+X4+X5+X6+X7+X8,data =Surgical.Unit)
+summary(model)
+model<-update(model,.~.-X4)
+summary(model)
+model<-update(model,.~.-X7)
+summary(model)
+model<-update(model,.~.-X5)
+summary(model)
+model<-update(model,.~.-X6)
+summary(model)
+
+library(leaps)
+b <- regsubsets(lnY~X1+X2+X3+X4+X5+X6+X7+X8,data=Surgical.Unit)
+rs <- summary(b)
+rs$which
+
+AIC <- 54*log(rs$rss/54) + (2:9)*2
+plot(AIC ~ I(1:8), ylab="AIC", xlab="Number of Predictors")
+plot(1:8,rs$adjr2,xlab="No. of Parameters",ylab="Adjusted R-square")
+which.max(rs$adjr2)
+
+plot(1:8,rs$cp,xlab="No. of Parameters",ylab="Cp Statistic")
+abline(0,1)
+
+
+#install.packages("olsrr")
+library(olsrr)
+model<-lm(lnY ~X1+X2+X3+X4+X5+X6+X7+X8,data =Surgical.Unit)
+f1 <- ols_step_all_possible(model)
+plot(f1)
+
+
+#install.packages("leaps")
+library(leaps)
+ex<- Surgical.Unit
+ex.r2<-leaps( x=cbind(ex$X1,ex$X2,ex$X3,ex$X4,ex$X5,ex$X6,ex$X7,ex$X8),y=ex$lnY, method='r2', nbest=6)
+p<-seq( min(ex.r2$size),max(ex.r2$size) )
+ind<-as.data.frame(ex.r2[c(3:4)])
+ind<-ind[with(ind, order(size,r2)), ]
+plot(ind[,c(1:2)] ,ylab=expression(R^2), xlab='p' ,col="red",pch=16)
+Rp2 = by( data=ex.r2[4],INDICES=factor(ex.r2$size), FUN=max)
+lines( Rp2 ~ p,col="blue" )
+
+
+
+
+```
+OLSRR Package
+```{r}
+library(olsrr)
+library(datasets)
+k <- ols_step_all_possible(model)
+plot(k)
+#Best Subset Regression
+k1<-ols_step_best_subset(model, details = FALSE)
+plot(k1)
+# stepwise forward regression
+k2<-ols_step_forward_p(model,details = FALSE)
+plot(k2)
+# stepwise backward regression
+k4<-ols_step_backward_p(model,prem=0.05,details = FALSE)
+#plot(k4)
+# stepwise regression
+ols_step_both_p(model,pent=0.1,prem=0.05,details=TRUE)
+k5<-ols_step_both_p(model)
+plot(k5)
+# stepwise aic forward regression
+k6<-ols_step_forward_aic(model,details = FALSE)
+plot(k6)
+# stepwise aic backward regression
+k7 <- ols_step_backward_aic(model,details = FALSE)
+plot(k7)
+# stepwise aic regression
+k8<-ols_step_both_aic(model,details = FALSE)
+plot(k8)
+```
