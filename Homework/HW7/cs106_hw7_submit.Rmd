@@ -33,7 +33,8 @@ loadLib = function(libName)
     }
 }
 
-libs = c("ggplot2", "knitr", "MASS", "ggcorrplot", "GGally", "alr3", "lattice", "dplyr", "ALSM")
+libs = c("ggplot2", "knitr", "MASS", "ggcorrplot", "GGally", "alr3", 
+         "lattice", "dplyr", "ALSM", "leaps", "olsrr", "qpcR")
 
 for (lib in libs)
 {
@@ -52,21 +53,24 @@ for (lib in libs)
 
 ```{r}
 cdi_data = read.csv("CDI.csv")
-Y = cdi_data$Total.serious.crimes/cdi_data$Total.population
-X1 = cdi_data$Total.population/cdi_data$Land.area
-X3 = cdi_data$Percent.unemployment
 
-x1 = (X1-mean(X1))/sqrt(var(X1))
-x3 = (X3-mean(X3))/sqrt(var(X3))
-x1sqr = x1^2
-x3sqr = x3^2
-x1x3 = x1*x3
+df_1 = cdi_data
+
+Y = df_1$Total.serious.crimes/df_1$Total.population
+X1 = df_1$Total.population/df_1$Land.area
+X3 = df_1$Percent.unemployment
+
+df_1$x1 = (X1-mean(X1))/sqrt(var(X1))
+df_1$x3 = (X3-mean(X3))/sqrt(var(X3))
+df_1$x1sqr = df_1$x1^2
+df_1$x3sqr = df_1$x3^2
+df_1$x1x3 = df_1$x1*df_1$x3
 
 ```
 
 
 ```{r}
-lm_cdi_1a = lm(Y~x1+x3+x1sqr+x3sqr+x1x3)
+lm_cdi_1a = lm(Y~x1+x3+x1sqr+x3sqr+x1x3, data=df_1)
 summary(lm_cdi_1a)
 ```
 
@@ -74,15 +78,24 @@ summary(lm_cdi_1a)
 ```{r}
 ei = lm_cdi_1a$residuals
 fitted_values = lm_cdi_1a$fitted.values
-plot(ei, fitted_values)
+plot(fitted_values, ei)
 ```
+
+```{r}
+coeffs = summary(lm_cdi_1a)$coefficients
+cat(sprintf("The regression model is Yhat = %f + %f*x1 + %f*x3 + %f*x1sqr + %f*x3sqr + %f*x1x3\n", 
+            coeffs[1,1], coeffs[2,1], coeffs[3,1], coeffs[4,1], coeffs[5,1], coeffs[6,1]))
+cat(sprintf("R^2: %f\n", summary(lm_cdi_1a)$r.squared))
+```
+
+We can see that the regression model is not a very great fit based on the $R^2$ and the residual plot (we can see outliers and non-constant variance in the error terms).
 
 **(b)** Test whether or not all quadratic and interaction terms can be dropped from the regression model; use α = .01. State the alternatives, decision rule, and conclusion. (5pts)
 
 **Solution:**
 
 ```{r}
-lm_cdi_1b = lm(Y~x1+x3)
+lm_cdi_1b = lm(Y~x1+x3, data=df_1)
 summary(lm_cdi_1b)
 ```
 
@@ -93,7 +106,8 @@ anova(lm_cdi_1b, lm_cdi_1a)
 
 
 ```{r}
-FStar = 3.2159 # from above anova 
+FStar = 3.2159 # from the above anova 
+
 df_diff = 3
 df_E = lm_cdi_1b$df.residual
 alpha = 0.01
@@ -104,7 +118,7 @@ print(FTest)
 
 *Hypotheses:*
 
-$H_0: \beta_{11} = \beta_{22} = \beta_{12} = 0$ 
+$H_0: \beta_{11} = \beta_{33} = \beta_{13} = 0$ 
 
 $H_a:$ Not all $\beta$'s are equal to zero
 
@@ -117,7 +131,7 @@ If $F^* >$ `r FTest`, conclude $H_a$
 
 *Conclusion:*
 
-Since our test statistic, $F^* =$ `r FStar`, and `r FStar` $\leq$ `r FTest`, we conclude $H_0$. Thus, we can remove all the quadratic and interaction terms.
+Since our test statistic, $F^* =$ `r FStar`, and `r FStar` $\leq$ `r FTest`, we conclude $H_0$. Also, we can see that the p-value is 0.02278 (from ANOVA) which is greater that the given $\alpha=0.01$. Thus, we can remove all the quadratic and interaction terms.
 
 
 **(c)** Instead of the predictor variable population density, total population (X1) and land area (X2) are to be employed as separate predictor variables, in addition to unemployment rate (X3). The regression model should contain linear and quadratic terms for total population, and linear terms only for land area and unemployment rate. (No interaction terms are to be included in this model.) Fit this regression model and obtain R2. Is this coefficient of multiple determination substantially different from the one for the regression model in part a? (5pts)
@@ -148,6 +162,13 @@ summary(lm_cdi_1c)
 anova(lm_cdi_1c, lm_cdi_1a)
 ```
 
+```{r}
+cat(sprintf("R^2: %f\n", summary(lm_cdi_1c)$r.squared))
+```
+
+*Interpretation:* We can see from the ANOVA that the model in Q1(c) is substantially different than the one in part (a), since the p-value is very low (<<0.001). Also, the $R^2$ is substantially different for the two models.
+
+
 **Question 2** Refer to the CDI data set. The number of active physicians (Y) is to be regressed against total population (X1), total personal income (X2), and geographic region (X3, X4, X5). (15pts)
 
 **(a)** Fit a first-order regression model. Let X3 =1 if NE and 0 otherwise, X4 = 1 if NC and 0 otherwise, and X5 = 1I if S and 0 otherwise. (5pts)
@@ -156,30 +177,73 @@ anova(lm_cdi_1c, lm_cdi_1a)
 **Solution:**
 
 ```{r}
-Y = cdi_data$Number.of.active.physicians
-X1 = cdi_data$Total.population
-X2 = cdi_data$Total.personal.income
+df = cdi_data
+Y = df$Number.of.active.physicians
+X1 = df$Total.population
+X2 = df$Total.personal.income
 
-X3 = which(cdi_data$Geographic.region=="NE")
+X3 = ifelse(df$Geographic.region==1, 1, 0)
+X4 = ifelse(df$Geographic.region==2, 1, 0)
+X5 = ifelse(df$Geographic.region==3, 1, 0)
 
 ```
 
 
 ```{r}
-levels(as.factor(cdi_data$Geographic.region))
+lm_cdi_2a = lm(Y~X1+X2+X3+X4+X5)
+summary(lm_cdi_2a)
 ```
 
+
+
+**(b)** Examine whether the effect for the northeastern region on number of active physicians differs from the effect for the north central region by constructing an appropriate 90 percent confidence interval. Interpret your interval estimate. (5pts)
 
 ```{r}
+alpha = 0.1
+confint(lm_cdi_2a, level=1-alpha)
 ```
 
+*Interpretation:*
+
+The confidence interval estimates for Northeastern region (X3) are not significantly different that those for Northcentral region (X4).
+
+
+**(c)** Test whether any geographic effects are present; use α= .10. State the alternatives, decision rule, and conclusion. What is the P-value of the test? (5pts)
 
 ```{r}
+lm_cdi_2c = lm(Y~X1+X2)
+summary(lm_cdi_2c)
+anova(lm_cdi_2c, lm_cdi_2a)
 ```
-
 
 ```{r}
+FStar = 1.9487 # from the above anova 
+
+df_diff = 3
+df_E = lm_cdi_1b$df.residual
+alpha = 0.1
+FTest = qf(1-alpha, df_diff, df_E)
+print(FTest)
 ```
+
+
+*Hypotheses:*
+
+$H_0: \beta_{3} = \beta_{4} = \beta_{5} = 0$ 
+
+$H_a:$ Not all $\beta$'s are equal to zero
+
+
+*Decision Rules:*
+
+If $F^* \leq$ `r FTest`, conclude $H_0$
+
+If $F^* >$ `r FTest`, conclude $H_a$
+
+*Conclusion:*
+
+Since our test statistic, $F^* =$ `r FStar`, and `r FStar` $\leq$ `r FTest`, we conclude $H_0$. Thus, the geographic effects are not present.
+
 
 **Quuestion 3** Refer to the Lung pressure Data. Increased arterial blood pressure in the lungs frequently leads to the development of heart failure in patients with chronic obstructive pulmonary disease (COPD). The standard method for determining arterial lung pressure is invasive, technically difficult, and involves some risk to the patient. Radionuclide imaging is a noninvasive, less risky method for estimating arterial pressure in the lungs. To investigate the predictive ability of this method, a cardiologist collected data on 19 mild-to-moderate COPD patients. The data includes the invasive measure of systolic pulmonary arterial pressure (Y) and three potential noninvasive predictor variables. Two were obtained by using radionuclide imaging emptying rate of blood into the pumping chamber or the heart (X1) and ejection rate of blood pumped out of the heart into the lungs (X2) and the third predictor variable measures blood gas (X3). (25pts)
 
@@ -190,48 +254,362 @@ levels(as.factor(cdi_data$Geographic.region))
 
 ```{r}
 lung_data = read.csv("Lung Pressure.csv")
-lm_lung_2a = lm(Y~X1+X2+X3, data=lung_data)
-summary(lm_lung_2a)
+lm_lung_3a = lm(Y~X1+X2+X3, data=lung_data)
+summary(lm_lung_3a)
+
 ```
 
+```{r}
+anova(lm_lung_3a)
+```
+
+
+*Interpretation:* 
+
+We see that the p-value for X2 and X3 show a good linear relation with Y, as they add a significant amount of SSR (based on ANOVA above and looking at the respective p-values). But X3 does not appear to add a significant value to the model when X1 and X2 are already present.
+
+
+**(b)** Using first-order and second-order terms for each of the three predictor variables (centered around the mean) in the pool of potential X variables (including cross products of the first order terms), find the three best hierarchical subset regression models according to the R2a,p criterion. (5pts)
 
 ```{r}
 df = lung_data
 
-X1 = lung_data$X1
-X2 = lung_data$X2
-X3 = lung_data$X3
+Y = df$Y
+X1 = df$X1
+X2 = df$X2
+X3 = df$X3
 
-x1 = (X1-mean(X1))/sqrt(var(X1))
-x2 = (X2-mean(X2))/sqrt(var(X2))
-x3 = (X3-mean(X3))/sqrt(var(X3))
-x1sqr = X1^2
-x2sqr = X2^2
-x3sqr = X3^2
-x1x2 = X1*X2
-x1x3 = X1*X3
-x2x3 = X2*X3
+df$x1 = (X1-mean(X1))/sqrt(var(X1))
+df$x2 = (X2-mean(X2))/sqrt(var(X2))
+df$x3 = (X3-mean(X3))/sqrt(var(X3))
+df$x1sqr = df$x1^2
+df$x2sqr = df$x2^2
+df$x3sqr = df$x3^2
+df$x1x2 = df$x1*df$x2
+df$x1x3 = df$x1*df$x3
+df$x2x3 = df$x2*df$x3
 
 ```
 
 
 ```{r}
+lm_lung_3b1 = lm(Y~x1+x2+x3+x1sqr+x2sqr+x3sqr+x1x2+x1x3+x2x3, data=df)
+summary(lm_lung_3b1)
+lm_lung_3b2 = update(lm_lung_3b1,.~.-x1sqr)
+summary(lm_lung_3b2)
+lm_lung_3b3 = update(lm_lung_3b2,.~.-x2sqr)
+summary(lm_lung_3b3)
+lm_lung_3b4 = update(lm_lung_3b3,.~.-x1x3)
+summary(lm_lung_3b4)
+lm_lung_3b5 = update(lm_lung_3b4,.~.-x3sqr)
+summary(lm_lung_3b5)
+lm_lung_3b6 = update(lm_lung_3b5,.~.-x3)
+summary(lm_lung_3b6)
+lm_lung_3b7 = update(lm_lung_3b6,.~.-x2x3)
+summary(lm_lung_3b7)
+
+```
+
+We can see that `lm_lung_3b5`, `lm_lung_3b6` and `lm_lung_3b7` are the three best hierarchical subset regression models based on Adjusted R-squared.
+
+
+```{r}
+model_hlm_3b = regsubsets(Y~x1+x2+x3+x1sqr+x2sqr+x3sqr+x1x2+x1x3+x2x3, data=df)
+regs = summary(model_hlm_3b)
+results_df = data.frame(regs$which)
+results_df$adjr2 = regs$adjr2
+results_df[order(results_df$adjr2),]
+```
+
+**(c)** Is there much difference in R2a,p for the three best subset models? (5pts)
+
+**Solution:**
+
+`lm_lung_3b5`, `lm_lung_3b6` and `lm_lung_3b7` have an adjusted $R^2$ of 0.7228, 0.7418, 0.7507 respectively. Thus, they have more or less the same adjusted $R^2$.
+
+
+**(d)** Calculate the PRESS statistic and compare it to SSE. What does this comparison suggest about the validity of MSE as an indicator of the predictive ability of the fitted model? (5pts)
+
+**Solution:**
+
+We will be using the function PRESS() from `qpcR` library to calculate the PRESS statistic
+
+```{r}
+help("PRESS")
+```
+
+```{r}
+PRESS(lm_lung_3b7)
+
+PRESS_sq = (PRESS(lm_lung_3b7)$residuals)^2
+plot(PRESS_sq)
+```
+
+```{r}
+anova(lm_lung_3b7)
+```
+
+SSE is 1680.5 for the best model chosen above and the PRESS stat is 5102.5. This means that there are a few observations in the data set are significantly driving the model's coefficients.
+
+
+**(e)** Case 8 alone accounts for approximately one-half of the entire PRESS statistic. Would you recommend modification of the model because of the strong impact of this case? What are some corrective action options that would lessen the effect of case 8? (5pts)
+
+**Solution:**
+
+- PRESS statistic for case 8 is $\approx$ 2500. This clearly indicates that case 8 is an outlier. 
+- Thus, case 8 should be taken out from the model building data set and the same model can be refitted.
+
+```{r}
+summary(lm(formula = Y ~ x1 + x2 + x1x2, data = df[-8,]))
+```
+ 
+We can see a significant improvement in Adjusted $R^2$.
+
+
+**Question 4** Refer to the Website developer data set. Management is interested in determining what variables have the greatest impact on production output in the release of new customer websites. Data on 13 three-person website developed teams consisting of a project manager, a designer. and a developer are provided in the data set. Production data from January 2001 through August 2002 include four potential predictors; (1) the change in the website development process. (2) the size of the backlog of orders, (3) the team effect, and (4) the number of months experience of each team. (10 pts)
+
+**(a)** Develop a best subset model for predicting production output. Justify your choice of model. Assess your model's ability to predict and discuss its use as a tool for management decisions. (10 pts)
+
+**Solution:**
+
+```{r}
+website_data = read.csv("Website Developer.csv")
+website_data$Process.change = as.factor(website_data$Process.change)
+website_data$Team.number = as.factor(website_data$Team.number)
+summary(website_data)
+```
+
+
+
+```{r}
+model = lm(Websites.delivered~Process.change+Backlog.of.orders+
+             Team.number+Team.experience, data=website_data)
+summary(model)
 ```
 
 
 ```{r}
+#Best Subset Regression
+k1<-ols_step_best_subset(model, details = FALSE)
+plot(k1)
 ```
 
 
 ```{r}
+k1
+```
+
+*Interpretation*
+
+We can see above that all the model selection criteria point us to model #2 - looking at the plots, they all have the "elbow" at model #2.
+
+```{r}
+model_4 = lm(Websites.delivered~Process.change+Team.number, data=website_data)
+summary(model_4)
+anova(model_4)
 ```
 
 
 ```{r}
+calc_mspr <- function(model, df, Y_str){
+  yhat = predict(model, df)
+  yi = df[,Y_str]
+
+  MSPR = sum((yi-yhat)^2)/nrow(df)
+  MSPR
+}
+```
+
+```{r}
+MSPR = calc_mspr(model=model_4, df=website_data, Y_str=c("Websites.delivered"))
+print(MSPR)
+```
+
+
+*Interpretation:*
+
+60% of the variation in `Websites.delivered` is explained by our model (with variables `Process.change` and `Team.number`). We can also see that the MSE and the MSPR are not significantly different. Thus, the model is certainly not a perfect fit for the give data set. However, it does a good enough job of pointing the management in the right direction as to where it should focus its efforts to drive more efficiency. 
+
+- First recommendation to the management would be that a change in website development process can significantly improve the production output
+- Second, teams 5,7, 8, 9 are doing a good job and are surely the high performers (higher $\beta$'s). While, team number 3 and 10 are laggind behind.
+
+
+**Question 5** Refer to the Prostate cancer data set. Serum prostate-specific antigen (PSA) was determined in 97 men with advanced prostate cancer. PSA is a well-established screening test for prostate cancer and the oncologists wanted to examine the correlation between level of PSA and a number of clinical measures for men who were about to undergo radical prostatectomy. The measures are cancer volume, prostate weight, patient age, the amount of benign prostatic hyperplasia, seminal vesicle invasion, capsular penetration, and Gleason score. (15 Pts) 
+
+**(a)** Select a random sample of 65 observations to use as the model-building data set. Develop a best subset model for predicting PSA. Justify your choice of model. Assess your model's ability to predict and discuss its usefulness to the oncologists. (5pts)
+
+**Solution:**
+
+```{r}
+prostate_data = read.csv("Prostate Cancer.csv")
+prostate_data$Seminal.vesicle.invasion = as.factor(prostate_data$Seminal.vesicle.invasion)
+prostate_data$Gleason.score = as.factor(prostate_data$Gleason.score)
+summary(prostate_data)
+```
+
+
+```{r}
+set.seed(1234)
+train_ind = sample(1:nrow(prostate_data), 65)
+test_ind = setdiff(1:nrow(prostate_data), train_ind)
+train_df = prostate_data[train_ind,]
+test_df = prostate_data[test_ind,]
+```
+
+
+```{r}
+exc_cols = c("Seminal.vesicle.invasion","Gleason.score")
+cor(prostate_data[,-which(names(prostate_data) %in% exc_cols)])
+```
+
+We can see that x6 and x1 are positively correlation with $r=0.69$. However, Y has a higher correlation with x1. So we will take out x6.
+
+```{r}
+model = lm(PSA.level~., data=train_df)
+summary(model)
+```
+
+
+```{r}
+k1<-ols_step_best_subset(model, details = FALSE)
+plot(k1)
+```
+
+
+```{r}
+k1
+```
+
+
+```{r}
+model_train = lm(PSA.level~Cancer.volume + Seminal.vesicle.invasion, data=train_df)
+summary(model_train)
+anova(model_train)
+```
+
+```{r}
+MSPR = calc_mspr(model=model_train, df=train_df, Y_str="PSA.level")
+print(MSPR)
+```
+
+
+*Interpretation:*
+
+We can see that, based on the plots and the above summary, model #2 is where the "elbow" occurs for various measures. 
+
+43% of the variation in PSA.level is explained by the variables "Cancer Volume" and "Seminal vesicle invasion". This could be significant considering the nature of the problem we are trying to solve since any correlation can lead the oncologists early detection of the ailment.
+
+- The oncologists would be able predict the PSA based on the volume of cancer and if there was a seminal vescicle invasion.
+- We can see that both these variables are postively correlated to the PSA level, which means the oncologists can determine early if a patient is in the "high-risk" zone and possibly start early treatment.
+
+
+
+
+**(b)** Fit the regression model identified in part a to the validation data set. Compare the estimated regression coefficients and their estimated standard errors with those obtained in part a. Also compare the error mean square and coefficients of multiple determination. Does the model fitted to the validation data set yield similar estimates as the model fitted to the model-building data set? (5pts)
+
+
+```{r}
+summary(model_train)
+model_test = lm(PSA.level~Cancer.volume + Seminal.vesicle.invasion, data=test_df)
+summary(model_test)
+```
+
+```{r}
+confint(model_train)
+confint(model_test)
+```
+
+
+```{r}
+anova(model_train)
+anova(model_test)
+```
+
+*Interpretation*
+
+*Comparing Coeficients and their s(b):* 
+
+- We can see that all the three $\beta$ s for the validation model have significantly higher standard errors compared to those for the ones in training model. We can also see this in the 95% confidence interval. 
+- Also, there is some material differences in the values for the Intercept and the $\beta$ for `Seminal.vesicle.invasion`.
+
+*Comparing MSE and R-squared:* 
+
+- MSE for the validation model is higher that the one for training model.
+- Also, multiple$R^2$ for validation model is lower than that for the training model.
+- This means that the training model is a better fit to the training data compared to validation model is to the validation data.
+- The above effect is mostly due to the fact that there are more data points in training data set compare to the validation data set.
+
+**(c)** Calculate the mean squared prediction error (equation 9.20 on the book) and compare it to MSE obtained from the model-building data set. Is there evidence of a substantial bias problem in MSE here? (5pts)
+
+```{r}
+MSPR = calc_mspr(model=model_train, df=train_df, Y_str="PSA.level")
+print(MSPR)
+```
+
+*Interpretation:*
+
+We can see that the MSPR obtained in part(c) is not significantly different than MSE in part(a). Thus, we can say that there is no evidence of substantial bias problem here.
+
+**Question 6 ** Refer to Market share data set. Company executives want to be able to predict market share of their product (Y) based on merchandise price (X1), the gross Nielsen rating points (X2, an index of the amount of advertising exposure that the product received); the presence or absence of a wholesale pricing discount (X3 = 1 if discount present: otherwise X3 = 0); the presence or absence of a package promotion during the period (X4 = 1 if promotion present: otherwise X4 = 0): and year (X5). Code year as a nominal level variable and use 2000 as the referent year. (20 pts)
+
+**(a)** Using only first-order terms for predictor variables, find the three best subset regression models according to the SBCp criterion. (7 pts)
+
+**Solution:**
+
+```{r}
+market_data = read.csv("Market Share.csv")
+market_data$Discount.Price = as.factor(market_data$Discount.Price)
+market_data$Package.Promotion = as.factor(market_data$Package.Promotion)
+market_data$Year = as.factor(market_data$Year)
+summary(market_data)
+```
+
+
+```{r}
+reg1 = regsubsets(Market.Share~Price+Gross.Nielsen.Rating.Points+Discount.Price
+                  +Package.Promotion+Year, data=market_data, nbest=3, nvmax=5)
+summary(reg1)
+res.sum = summary(reg1)
+```
+
+
+```{r}
+res.sum$bic
 ```
 
 
 
+```{r}
+order(res.sum$bic)
+```
+
+Price, Discount and Promotion have the lowest SBC value.
 
 
+**(b)** Using forward stepwise regression, find the best subset of predictor variables to predict market share of their product. Use α limits of 0.10 and .15 for adding or deleting a predictor, respectively. (7pts)
 
+**Solution:**
+
+
+```{r}
+model = lm(Market.Share~Price+Gross.Nielsen.Rating.Points+Discount.Price
+                  +Package.Promotion+Year, data=market_data)
+summary(model)
+```
+
+
+```{r}
+help("ols_step_forward_p")
+k2<-ols_step_forward_p(model, pent=0.1, prem=0.15, details = FALSE)
+plot(k2)
+```
+
+
+**(c)** How does the best subset according to forward stepwise regression compare with the best subset according to the SBCp criterion used in part a? (6pts)
+ 
+
+```{r}
+k2$predictors
+```
+
+We see that the best subset according to forward stepwise regression is same as the best subset according to the SBCp criterion.
