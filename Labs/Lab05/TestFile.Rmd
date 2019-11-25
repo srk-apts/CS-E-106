@@ -1,0 +1,52 @@
+---
+title: "Test RMarkdown file"
+author: "CSCI E-106 Staff"
+date: "10/10/2019"
+output: pdf_document
+---
+
+## Problem 1
+
+Write text, more text. 
+
+$$ R^2 = 20\%$$
+
+print(10)
+
+```{r}
+CDI <- read.csv("CDI.csv")
+print(CDI)
+
+print(200)
+
+a <- 200
+b <- a
+C <- 3*a
+
+
+
+```
+
+print(c)
+
+
+
+## Problem 2
+
+```{r}
+#print(d)
+print(C) # it would print 600
+
+C <- 2
+
+print(C) # this time it will print 2
+
+
+```
+
+
+## Problem 3
+
+This will execute `r print(c)`.
+
+

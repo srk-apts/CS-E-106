@@ -1,0 +1,21 @@
+---
+title: "LaTeX"
+output: pdf_document
+---
+
+
+## R Markdown
+
+You can write here, $x_1 = x_2^2$.
+
+Equation mode:
+$$ x_1= x_2 + \varepsilon_t + \epsilon_t  $$
+$$ Q = \prod_{n=1}^{\infty} \frac{1}{n}$$
+$$ Q = \sum_{n=1}^{\infty} \frac{1}{n}$$
+
+$$ \frac{\partial}{\partial x} F(x,y) = \frac{\partial}{\partial x} (x^2 + y^2) =   $$
+
+$$  \frac{\partial}{\partial x} (x^2 + y^2) = 2x   $$
+
+
+

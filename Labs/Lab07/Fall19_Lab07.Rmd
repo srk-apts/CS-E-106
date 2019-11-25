@@ -1,0 +1,614 @@
+---
+title: 'CSCI E-106: Section 07'
+date: "Date: 10/24/2018"
+output: pdf_document
+toc: true
+number_sections: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(tidy.opts=list(width.cutoff=80), 
+                      fig.width=10, fig.height=5)
+
+loadLib = function(libName)
+{
+    if(require(libName, character.only=TRUE))
+    {
+        cat(libName, "loaded properly\n")
+    } else {
+        cat("Installing", libName, "\n")
+        install.packages(libName)
+        if(require(libName, character.only=TRUE))
+        {
+            cat(libName, "loaded properly\n")
+        } else {
+            stop(c(libName, "not properly installed\n"))
+        }
+    }
+}
+
+libs = c("ggplot2", "knitr", "MASS", "ggcorrplot", "GGally", "alr3")
+
+for (lib in libs)
+{
+    loadLib(lib)
+}
+
+```
+
+
+>
+>
+>
+
+# Section Problems
+
+## (7.04) Reference to Grocery retailer Problem 6.9.
+\textit{A large,national grocery retailer tracks productivity and costs of its facilities closely. Data were obtained from a single distribution center for a one-year period. Each data point for each variable represents one week of activity. The variables included are the number of cases shipped $(X_1)$, the indirect costs of the total labor hours as a percentage $(X_2)$, a qualitative predictor called holiday that is coded $1$ if the week has a holiday and $0$ otherwise $(X_3)$, and the total labor hours $(Y)$.}
+
+*Please use dataset titled **CH06PR09.txt** when applicable*
+
+```{r problem 7.04 loading data}
+#Load the data
+df_704 = read.delim(file="CH06PR09.txt", sep="", 
+                        header = FALSE,
+                        col.names = c("laborHours", 
+                                      "shippedCases", 
+                                      "indirectCosts",
+                                      "holiday"))
+```
+
+>
+
+a. Obtain the analysis of variance table that decomposes the regression sum of squares into extra sums of squares associated with $X_1$; with $X_3$, given $X_1$; and with $X_2$, given $X_1$ and $X_3$.
+
+\textbf{Solution Below}
+
+<!-- Input solution below -->
+
+```{r problem 7.04a}
+
+lmFit_704 = lm(laborHours ~ shippedCases+holiday+indirectCosts, data=df_704)
+
+summary(lmFit_704)
+
+anovaTable = data.frame(anova(lmFit_704))
+totals = c(round(sum(anovaTable[,1])), round(sum(anovaTable[,2])), "", "", "")
+anovaTable = rbind(anovaTable, totals)
+
+#add names to the table 
+row.names(anovaTable) = c("SSR(X1)", "SSR(X3|X1)", "SSR(X2|(X1X3))", "SSE", "Total")
+colnames(anovaTable) = c("DF", "Sum Sq.", "Mean Sq.", "F-Value", "Pr(>F)")
+
+
+#print our analysis of variance table 
+kable(anovaTable)
+```
+
+
+
+SSR(X1) = Sum of squares associated with X1
+
+SSR(X3|X1) = Sum of squares associated with X3 given X1
+
+SSR(X2|(X1X3)) = Sum of squares into extra sums of squares associated with X2 given X1 and X3
+
+<!-- End of solution -->
+>
+
+b. Test whether $X_2$ can be dropped from the regression model given that $X_1$, and $X_3$ are retained. Use the F* test statistic and $\alpha = .05$. State the alternatives, decision rule, and conclusion. What is the P-value of the test?
+
+\textbf{Solution Below}
+
+<!-- Input solution below -->
+
+```{r problem 7.04b}
+
+ssr = as.numeric(anovaTable[3,2])
+sse = as.numeric(anovaTable[4,2])
+
+fStar = (ssr/1) / (sse/as.numeric(anovaTable[4,1]))
+print(fStar)
+
+#alpha is given
+alpha = 0.05
+
+# df from Summary above in a
+db = qf(1-alpha, 1, 48)
+print(db)
+
+```
+
+\underline{\textbf{ANALYSIS}}
+
+\textbf{Hypotheses:}
+
+$H_0: \beta_2 = 0$ 
+
+$H_a: \beta_2 \neq 0$ 
+
+
+\textbf{Decision Rules:}
+
+If $F^* \leq$ `r db`, conclude $H_0$
+
+If $F^* >$ `r db`, conclude $H_a$
+
+\textbf{Conclusion:}
+
+Since our test statistic, $F^* =$ `r fStar`, and `r fStar` $\leq$ `r db`, we conclude $H_0$.
+
+<!-- End of solution -->
+
+>
+
+c. Does $SSR(X_1)$ + $SSR(X_2 | X_1)$ equal $SSR(X_2)$ + $SSR(X_1|X_2)$ here? Must this always be the case?
+(Does our sum of squares associated with x1 plus sum of squares associated with x2 given x1 equal sum of squares associated with x2 plus sum of squares associated with x1 given x2?) 
+
+
+
+\textbf{Solution Below}
+
+<!-- Input solution below -->
+
+```{r problem 7.04c}
+ssr_x1 = anova(lm(laborHours~shippedCases+indirectCosts, data=df_704))[1,2]
+ssr_x2x1 = anova(lm(laborHours~shippedCases+indirectCosts, data=df_704))[2,2]
+eq1_sum = round(ssr_x1+ssr_x2x1)
+ssr_x1 = paste0(ssr_x1)
+ssr_x2x1 = paste0(ssr_x2x1)
+eq1_sum = paste0(eq1_sum)
+print(eq1_sum)
+
+ssr_x2 = anova(lm(laborHours~indirectCosts+shippedCases, data=df_704))[1,2]
+ssr_x1x2 = anova(lm(laborHours~indirectCosts+shippedCases, data=df_704))[2,2]
+eq2_sum = round(ssr_x2+ssr_x1x2)
+ssr_x2 = paste0(ssr_x2)
+ssr_x1x2 = paste0(ssr_x1x2)  
+eq2_sum = paste0(eq2_sum)
+print(eq2_sum)
+```
+
+\underline{\textbf{ANALYSIS}}
+
+We can calculate this mathematically to see if $SSR(X_1)$ + $SSR(X_2 | X_1)$ = $SSR(X_2)$ + $SSR(X_1|X_2)$.
+
+\textbf{Equation 1: } $SSR(X_1) + SSR(X_2 | X_1)$
+
+$$SSR(X_1) + SSR(X_2 | X_1)$$
+\begin{center}
+`r ssr_x1` + `r ssr_x2x1` = `r eq1_sum`
+\end{center}
+
+>
+
+\textbf{Equation 2: } $SSR(X_2) + SSR(X_1|X_2)$
+
+$$SSR(X_2) + SSR(X_1|X_2)$$
+\begin{center}
+`r ssr_x2` + `r ssr_x1x2` = `r eq2_sum`
+\end{center}  
+
+>
+
+Combining equation 1 and equation 2:
+        
+$$SSR(X_1) + SSR(X_2 | X_1) = SSR(X_2) + SSR(X_1|X_2)$$
+
+\begin{center}
+
+`r eq1_sum` = `r eq2_sum`
+
+\end{center}  
+    
+As a result, we see that $SSR(X_1) + SSR(X_2 | X_1) = SSR(X_2) + SSR(X_1|X_2)$. It will always be the case where the expressions are equivalent because of the inherent symmetry of the models.
+
+<!-- End of solution -->
+
+>
+## (7.38) Projects. Reference to SENIC data set in Appendix C.1.
+\textit{The primary objective of the Study on the Efficacy of Nosocomial Infection Control (SENIC Project) was to determine whether infection surveillance and control programs have reduced the rates of nosocomial (hospital-acquired) infection in United States hospitals. This data set consists of a random sample of 113 hospitals selected from the original 338 hospitals surveyed. Each line of the dataset has an identification number and provides information on 11 variables for a single hospital. The data presented here are for the 1975-76 study period.}
+
+*Please use dataset titled **APPENC01.txt** when applicable*
+
+>
+
+For predicting the average length of stay of patients in a hospital $(Y)$, it has been decided to include age $(X_1)$ and infection risk $(X_2)$ as predictor variables. The question now is whether an additional predictor variable would be helpful in the model and, if so, which variable would be most helpful. Assume that a first-order multiple regression model is appropriate.
+
+>
+
+a. For each of the following variables, calculate the coefficient of partial determination given that $X_1$ and $X_2$ are included in the model: routine culturing ratio $(X_3)$, average daily census $(X_4)$, number of nurses $(X_5)$, and available facilities and services $(X_6)$.
+
+\textbf{Solution Below}
+
+<!-- Input solution below -->
+
+```{r problem 7.38 loading data}
+# Y: Average length of stay of patients in hospital
+# X1: Age
+# X2: Infection Risk
+# X3: Routine Culturing Ratio
+# X4: Average Daily Census
+# X5: Number of Nurses
+# X6: Available Facilities & Services
+
+df_738 = read.delim(file="APPENC01.txt", sep="", header = FALSE)[,c(2,3,4,5,10,11,12)]
+colnames(df_738) = c("Y","X1","X2","X3","X4","X5","X6")
+```
+
+```{r}
+
+r2_X3 = anova(lm(Y~X1+X2+X3,df_738))[3,2]/sum(anova(lm(Y~X1+X2+X3,df_738))[3:4,2])
+
+r2_X4 = anova(lm(Y~X1+X2+X4,df_738))[3,2]/sum(anova(lm(Y~X1+X2+X4,df_738))[3:4,2])
+
+r2_X5 = anova(lm(Y~X1+X2+X5,df_738))[3,2]/sum(anova(lm(Y~X1+X2+X5,df_738))[3:4,2])
+
+r2_X6 = anova(lm(Y~X1+X2+X6,df_738))[3,2]/sum(anova(lm(Y~X1+X2+X6,df_738))[3:4,2])
+```
+
+
+\underline{\textbf{ANALYSIS}}
+
+$R_{3|12}^2 =$ `r r2_X3`
+
+$R_{4|12}^2 =$ `r r2_X4`
+
+$R_{5|12}^2 =$ `r r2_X5`
+
+$R_{6|12}^2 =$ `r r2_X6`
+
+<!-- End of solution -->
+
+>
+
+
+b. On the basis of the results in part (a), which of the four additional predictor variables is best? Is the extra sum of squares associated with this variable larger than those for the other three variables?
+
+\textbf{Solution Below}
+
+<!-- Input solution below -->
+
+\underline{\textbf{ANALYSIS}}
+
+Based on the results from part (a), it looks like the fourth addition of $X_4$ (which is our second calculation above) would be the best. The extra sum of squares is associated with $X_4$ and it is larger than the other three variables.
+
+<!-- End of solution -->
+
+>
+
+c. Using the $F*$ test statistic, test whether or not the variable determined to be best in part (b) is helpful in the regression model when $X_1$ and $X_2$ are included in the model; use $\alpha = .05$. State the alternatives, decision rule, and conclusion. Would the $F*$ test statistics for the other three potential predictor variables be as large as the one here? Discuss.
+
+
+\textbf{Solution Below}
+
+<!-- Input solution below -->
+
+```{r problem 7.38c}
+
+(anova_738X4 = anova(lm(Y~X1+X2+X4,df_738)))
+
+ssr = anova_738X4[3,2]
+sse = anova_738X4[4,2]
+
+fStar = (ssr/1) / (sse/(anova_738X4[4,1])) 
+print(fStar)
+
+alpha = 0.05
+
+db <- qf(1-alpha,1,(anova_738X4[4,1]))
+print(db)
+```
+
+\underline{\textbf{ANALYSIS}}
+
+\textbf{Hypotheses:}
+
+$H_0: \beta_4 = 0$ 
+
+$H_a: \beta_4 \neq 0$ 
+
+
+\textbf{Decision Rules:}
+
+If $F^* \leq$ `r db`, conclude $H_0$
+
+If $F^* >$ `r db`, conclude $H_a$
+
+\textbf{Conclusion:}
+
+Since our test statistic, $F^* =$ `r fStar`, and `r fStar` $>$ `r db`, we conclude $H_a$.
+
+Recall the current model already includes $X_1$ and $X_2$, which are variables representing age and infection risk, respectively. Adding $X_4$ (Average Daily Census) to the current model would contribute more predictive power to predict the average length of hospital stay of patients.
+
+In addition, the $F^*$ test statistics for the other three potential predictor variables would not be as large as the one obtained for $X_4$ since the SSR values for the other variables would be smaller.
+
+<!-- End of solution -->
+
+>
+
+## (8.21) In a regression analysis of on-the-job head injuries of warehouse laborers caused by fulling objects, $Y$ is a measure of severity of the injury, $X_1$ is an index inflecting both the weight of the object and the distance it fell, and $X_2$ and $X_3$ are indicator variables for nature of head protection worn at the time of the accident, coded as follows:
+
+| Type of Prediction | $X_2$ | $X_3$ |
+|:------------------:|:-----:|:-----:|
+|      Hard Hat      |   1   |   0   |
+|      Bump Cap      |   0   |   1   |
+|        None        |   0   |   0   |
+
+
+The response function to be used in the study is $E\{Y\} = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \beta_3 X_3$.
+
+a. Develop the response function for each type of protection category.
+
+\textbf{Solution Below}
+
+<!-- Input solution below -->
+
+| Protection Category | Response Function |
+|:-------------------:|:----------------:|
+|      Hard Hat      |$E\{Y\} = (\beta_0+\beta_2) + \beta_1 X_1$|
+|      Bump Cap      |$E\{Y\} = (\beta_0+\beta_3) + \beta_1 X_1$|
+|        None        |$E\{Y\} = \beta_0 + \beta_1 X_1$|
+
+<!-- End of solution -->
+
+\underline{\textbf{ANALYSIS}}
+
+The response function used in the study implies that the regression of protection on head injuries is linear, with the same slope for all types of protections. The coefficients ($\beta_2, \beta_3$) indicate how much lower or higher the response functions for the protections models are than the no-protection category (e.g., 'None'). Thus, $\beta_2$ and $\beta_3$ measures the differential effects of the qualitative variable class. Differential effects of one qualitative variable on the intercept depend on the particular class of the other qualitative variable.
+
+>
+
+b. For each of the following questions, specify the alternatives $H_0$ and $H_a$ for the appropriate test: (1) With $X_1$ fixed, does wearing a bump cap reduce the expected severity of injury as compared with wearing no protection? (2) With $X_1$ fixed, is the expected severity of injury the same when wearing a hard hat as when wearing a bump cap?
+
+\textbf{Solution Below}
+
+<!-- Input solution below -->
+
+1. With $X_1$ fixed, does wearing a bump cap reduce the expected severity of injury as compared with wearing no protection? Null and alternative hypotheses as follows:
+
+$$
+H_0: \beta_3 \geq 0\\
+H_a: \beta_3 < 0
+$$
+2. With $X_1$ fixed, is the expected severity of injury the same when wearing a hard hat as when wearing a bump cap? Null and alternative hypotheses as follows:
+
+$$
+H_0: \beta_2 = \beta_3\\
+H_a: \beta_2 \neq \beta_3
+$$
+
+<!-- End of solution -->
+
+
+>
+
+## (8.38) Projects. Reference to SENIC data set in Appendix C.1.
+\textit{The primary objective of the Study on the Efficacy of Nosocomial Infection Control (SENIC Project) was to determine whether infection surveillance and control programs have reduced the rates of nosocomial (hospital-acquired) infection in United States hospitals. This data set consists of a random sample of 113 hospitals selected from the original 338 hospitals surveyed. Each line of the dataset has an identification number and provides information on 11 variables for a single hospital. The data presented here are for the 1975-76 study period.}
+
+```{r problem 8.38 loading data}
+# Y: Number of Nurses
+# X: Available Facilities & Services
+
+df_838 = read.table(file='APPENC01.txt', sep='', header=FALSE)[,c(11,12)]
+colnames(df_838) = c('Y','X')
+
+```
+
+>
+
+Second-order regression model (8.2) is to be fitted for relating number of nurses $(Y)$ to available facilities and services $(X)$.
+
+a. Fit the second-order regression model. Plot the residuals against the fitted values. How well does the second-order model appear to fit the data?
+
+\textbf{Solution Below}
+
+<!-- Input solution below -->
+
+Recall that the second-order regression model (8.2) is the following:
+
+$$Y =\beta_0 + \beta_1x_i + \beta_{11}x^2_i + \epsilon_i$$
+where $x_i = X_i - \bar{X}$. Since $X$ and $X^2$ will be highly correlated, centering the predictor variable often reduces the multicollinearity substantially and tends to avoid computational difficulties.
+
+```{r problem 8.38a}
+
+# Center the predictor
+df_838$x = df_838$X - mean(df_838$X) # generate quadratic variable
+
+# Create the model
+lm_838 = lm(Y ~ x + I(x^2), data=df_838) 
+summary(lm_838)
+
+ggplot(mapping = aes(lm_838$residuals, df_838$Y)) +
+    geom_point() +
+    labs(title="Residuals vs. Fitted Values", x="Residuals", y="Fitted Values")
+
+
+ggplot(mapping = aes(df_838$x, df_838$Y)) +
+    geom_point() +
+    geom_smooth(method = 'lm', formula=y ~ poly(x,2), col='hotpink') + 
+    labs(title="Second-order Model", x="x(centered)", y="Y(Fitted Values)")
+
+```
+
+\underline{\textbf{ANALYSIS}}
+
+Residuals appear to be relatively small for smaller values of $Y$.
+
+Quadratic model appears to fit the data well and follows the trend of the data. $R^2$ indicates roughly 66% of the data is explained by the model.
+
+<!-- End of solution -->
+
+>
+
+b. Obtain $R^2$ for the second-order regression model. Also obtain the coefficient of simple determination for the first-order regression model. Has the addition of the quadratic term in the regression model substantially increased the coefficient of determination?
+
+\textbf{Solution Below}
+
+<!-- Input solution below -->
+
+```{r}
+rSquare = summary(lm_838)$r.squared
+rSquare = paste0(signif(rSquare, digits=4))
+rSquaure_simp = summary(lm(Y~X, data=df_838))$r.squared
+rSquare_simp = paste0(signif(rSquaure_simp, digits=4))
+```
+
+\underline{\textbf{ANALYSIS}}
+
+The $R^2$ for the second-order regression model (AKA coefficient of multiple determination) is `r rSquare` and the coefficient of simple determinate is `r rSquare_simp`. We see that the coefficient of multiple determination is a slightly higher, which suggests that the quadratic term increased the proportion of the variance in the data.
+
+<!-- End of solution -->
+
+>
+
+c. Test whether the quadratic term can be dropped from the regression model; use $\alpha = .01$. State the alternatives, decision rule, and conclusion.
+
+\textbf{Solution Below}
+
+<!-- Input solution below -->
+
+```{r problem 8.38c}
+(anova = pureErrorAnova(lm_838))
+
+alpha = .01
+
+SSR_x2x = anova[2,2]
+SSE_xx2 = anova[3,2]
+
+db = qf(1-alpha, 1, nrow(df_838)-3)
+print(db)
+
+fStar = (SSR_x2x/1)/(SSE_xx2/(nrow(df_838)-3))
+print(fStar)
+```
+
+\underline{\textbf{ANALYSIS}}
+
+\textbf{Hypotheses:}
+
+$H_0: \beta_{11} = 0$ 
+
+$H_a: \beta_{11} \neq 0$ 
+
+
+\textbf{Decision Rules:}
+
+If $F^* \leq$ `r db`, conclude $H_0$
+
+If $F^* >$ `r db`, conclude $H_a$
+
+\textbf{Conclusion:}
+
+Since our test statistic, $F^* =$ `r fStar`, and `r fStar` > `r db`, we conclude $H_a$ where we would not drop the quadratic term from the model and keep it instead.
+
+
+
+<!-- End of solution -->
+
+>
+
+## (9.33) Case Study. Reference to Real estate sales Case Study 9.31. 
+
+The regression model identified in Case Study 9.31 is to be validated by means of the validation data set consisting of those cases not selected for the model building data set.
+
+\textit{\textbf{9.31. } Residential sales that occurred during the year 2002 were available from a city in the Midwest. Data on 522 arms-length transactions include sales price, style, finished square feet, number of bedrooms, pool, lot size, year built, air conditioning, and whether or not the lot is adjacent to a highway. The city tax assessor was interested in predicting sales price based on the demographic variable information given above. Select a random sample of 300 observations to use in the model-building data set. Develop a best subset model for predicting sales price. Justify your choice of model. Assess your model's ability to predict and discuss its use as a tool for predicting sales price.}
+
+>
+
+\textit{\textbf{Data Set C.7. Real Estate Sales. Page 1353 } The city tax assessor was interested in predicting residential home sales prices in a Midwestern city as a function of various characteristics of the home and surrounding property. Data on 522 arms-length transactions were obtained for home sales during the year 2002. Each line of the data set has an identification number and provides information on 12 other variables.}
+
+```{r problem 9.33 loading data}
+df_933 = read.table(file='APPENC07.txt', sep='', header=FALSE,
+                    col.names=c('id','salesPrice','sqFt','nBeds','nBaths',
+                    'ac','garageSize','pool','year','quality',
+                    'style','lotSize','hwy'))
+```
+
+a. Fit the regression model identified in Case Study 9.31 to the validation data set. Compare the estimated regression coefficients and their estimated standard errors with those obtained in Case Study 9.31. Also compare the error mean square and coefficients of multiple determination. Does the model fitted to the validation data set yield similar estimates as the model fitted to the model-building data set?
+
+\textbf{Solution Below}
+
+<!-- Input solution below -->
+
+```{r problem 9.33 prep from 9.31}
+
+# Prep from 9.31
+
+# Feature Engineering
+age = 2002 - df_933$year
+style1 = as.numeric(df_933$style == 7)
+uniform = runif(nrow(df_933))
+df_933_sorted = cbind(df_933, age, style1, uniform)
+df_933_sorted = as.data.frame(df_933_sorted[order(uniform),]) 
+
+# Partition Train and Test sets
+trainSample = as.data.frame(df_933_sorted[1:300,]) 
+valSample = as.data.frame(df_933_sorted[301:522,])
+
+# To find the best model, basically fit the model and iteratively delete the insignificant variables
+
+# Recall the factor variables: garage size, quality, style
+
+summary(lm(log(salesPrice) ~ sqFt + nBeds + nBaths + ac + factor(garageSize) + pool + age + factor(quality) + style1 + lotSize + hwy, data=trainSample))
+
+summary(lm(log(salesPrice) ~ sqFt + nBaths + ac + factor(garageSize) + pool + age + factor(quality) + style1 + lotSize+ hwy, data=trainSample))
+
+summary(lm(log(salesPrice) ~ sqFt + nBaths + ac + pool + age + factor(quality) + style1 + lotSize+ hwy, data=trainSample))
+
+summary(lm(log(salesPrice) ~ sqFt + nBaths + ac + age + factor(quality) + style1 + lotSize+ hwy, data=trainSample))
+
+trainModel = lm(log(salesPrice) ~ sqFt + nBaths + ac + age + factor(quality) + style1 + lotSize+ hwy, data=trainSample)
+
+```
+
+
+```{r problem 9.33a}
+
+# Preliminary Analysis
+#summary(df_933)
+#lapply(df_933, mode)
+#lapply(df_933, class)
+
+
+testModel = lm(log(salesPrice) ~ sqFt + nBaths + ac + age + factor(quality) + style1 + lotSize+ hwy, data=valSample)
+
+summary(trainModel)
+summary(valSample)
+
+```
+
+\underline{\textbf{ANALYSIS}}
+
+$R^2$ value for the training model was slightly higher and we see that the $R^2$ value for the validation model dropped. We can further analyze the variables in the model summaries. Comparing the variables, we see some notable differences. Specifically: number of baths, AC, style1 (our dummy variable), highway.
+
+<!-- End of solution -->
+
+>
+
+b. Calculate the mean squared prediction error (9.20) and compare it to MSE obtained from the model-building data set. Is there evidence of a substantial bias problem in MSE here?
+
+\textbf{Solution Below}
+
+<!-- Input solution below -->
+
+```{r problem 9.33b}
+
+anova(trainModel)
+(MSE = anova(trainModel)[9,3])
+# See MSE is ~0.033
+MSE = paste0(signif(MSE, digits=4))
+
+predsTest = predict(trainModel, valSample)
+
+(MSPR = sum((log(valSample$salesPrice) - predsTest)^2)/(nrow(valSample)))
+MSPR = paste0(signif(MSPR, digits=4))
+```
+
+\underline{\textbf{ANALYSIS}}
+
+The MSE obtainined from the model-building set is `r MSE` and the mean squared prediction error is `r MSPR`. We see that the two values are fairly similar, with variations between the two being small. There is no evidence of a substantial bias problem in the MSE.
+
+<!-- End of solution -->
+
+>
+

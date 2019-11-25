@@ -1,0 +1,411 @@
+---
+title: "Fall Week 1 Lab"
+author: "CSCI E-106 TA Session"
+date: "9/12/2019"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+number_sections: no
+toc: yes
+---
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(ggplot2)
+library(MASS)
+```
+
+>
+>
+>
+
+>
+
+# Slide 17 - Vectors
+```{r Slide 17}
+x <- c(1, 2, 3)
+y <- seq(1:3)
+z <- rep(3, 14) 
+
+print(x)
+print(y)
+print(z)
+```
+> 
+
+# Slide 20 - Operations on Vectors: Example
+```{r Slide 20}
+x <- c(1,3,5,10)
+x <- x * 2 
+print(x)
+
+```
+> 
+
+# Slide 21 - Lists
+```{r Slide 21}
+hd<- list(name="John Smith", id=1111, grade="B+", age=35)
+hd
+
+#find the second component of the list
+hd[[2]]
+```
+> 
+
+# Slide 25 - Data Frame
+
+```{r Slide 25}
+students <- c("John", "Mary", "Ethan", "Dora") 
+score<- c(76, 82, 84, 67) 
+grade <- c("B", "A", "A", "C") 
+class <- data.frame(students, score, grade)
+
+class
+
+```
+> 
+
+# Slide 27 - Loading Data into R
+```{r Slide 27}
+#see where R will read and save files
+getwd()
+```
+
+> 
+
+# Slide 32 - The For() Loop
+```{r Slide 32}
+
+x = 1:10
+
+for(i in 1:5)  
+{
+    x[i] <- x[i+2] + x[i+1]
+}
+
+print(x)
+
+# Example: Write for loop function that calculates the cumulative total for each row or element
+
+# declare a matrix
+
+m = matrix(1:3, nrow=3, ncol=5)
+print(m)
+
+cumSumRow = rep(0, dim(m)[1])
+
+for (i in (1:dim(m)[1]))
+{
+    for (j in (1:length(m[i,])))
+    {
+        cumSumRow[i] = (cumSumRow[i] + m[i,j])
+    }
+    
+}
+
+print(cumSumRow)
+```
+
+> 
+
+# Slide 35 - Sorting
+```{r Slide 35}
+data(mtcars)
+
+# sort by mpg
+newdata = mtcars[order(mtcars$mpg),] 
+print(newdata)
+
+# sort by mpg and cyl
+newdata <- mtcars[order(mtcars$mpg, mtcars$cyl),]
+print(newdata)
+
+#sort by mpg (ascending) and cyl (descending)
+newdata <- mtcars[order(mtcars$mpg, -mtcars$cyl),] 
+print(newdata)
+```
+
+> 
+
+# Slide 40 - Example
+```{r Slide 40}
+
+set.seed(123)
+
+obs = rnorm(10000)
+
+print(quantile(obs, .99))
+
+```
+
+
+
+# 1.20. Copier maintenance. 
+\textbf{The Tri-City Office Equipment Corporation sells an imported copier on a franchise basis and performs preventive maintenance and repair service on this copier. The data below have been collected from 45 recent calls on users to perform routine preventive maintenance service; for each call, X is the number of copiers serviced and Y is the total number of minutes spent by the service person. Assume that first-order regression model (1.1) is appropriate.}
+
+> Loading Data
+
+```{r problem 1.20 load data}
+# Assigning the data to a data frame object
+# called df20 and then we want to name the columns
+df20 = read.delim("CH01PR20.txt", header=FALSE, sep="")
+colnames(df20) = c("y", "x")
+```
+
+## a. Obtain the estimated regression function.
+
+> Solution
+
+```{r problem 1.20a}
+lmFit20 = lm(y~x, df20)
+print(summary(lmFit20))
+```
+We see that to obtain our estimated regression function we would use the estimate column values so our answer would become: y = -.5802 + 15.0352x 
+
+
+## b. Plot the estimated regression function and the data. How well does the estimated regression function fit the data?
+
+> Solution
+
+```{r problem 1.20b}
+plot(df20$x, df20$y, xlab="Copiers", ylab="Minutes")
+abline(lmFit20)
+```
+
+By just looking at our data we do  have a well fit line here. 
+
+
+## c. Interpret $b_o$ in your estimated regression function. Does $b_o$ provide any relevant information here? Explain.
+
+> Solution
+
+```{r problem 1.20c}
+yHat = predict(lmFit20, data.frame(x=0))
+print(yHat)
+```
+$b_0$ does not give us any sensible information since the predicted value is a negative number
+
+## d. Obtain a point estimate of the mean service time when $X = 5$ copiers are serviced.
+
+> Solution
+
+```{r problem 1.20d}
+yHat = predict(lmFit20, data.frame(x=5))
+print(yHat)
+```
+
+>
+
+# 1.24. Refer to _Copier maintenance_ Problem 1.20.
+
+## a Obtain the residuals $e_i$ and the sum of the squared residuals $\sum{e}_i^2$. What is the relation between the sum of the squared residuals here and the quantity Q in (1.8)?
+
+> Solution
+
+```{r problem 1.24a}
+yHat = predict(lmFit20)
+
+resids = (df20$y - yHat)
+print(resids)
+
+# Same thing, different syntax
+# resids = lmFit20$residuals
+# print(resids)
+
+#Sum of the squared residuals 
+SSE = (sum(resids^2))
+print(SSE)
+
+```
+
+## b. Obtain point estimates of $\sigma^2$ and $\sigma$. In what units is $\sigma$ expressed?
+
+> Solution 
+
+```{r problem 1.24b}
+
+# Degrees of freedom residual
+dfResid = lmFit20$df.residual
+MSE = (SSE/dfResid)
+print(MSE)
+
+
+# Obtain original units
+sqrt(MSE)
+
+# We can also see sigma ^2 by using the anova function
+anova(lmFit20)
+
+#mean is expressed in the units of minutes. 
+```
+>
+
+# 1.27. Muscle mass. 
+\textbf{A person's muscle mass is expected to decrease with age. To explore this rela- tionship in women, a nutritionist randomly selected 15 women from each lO-year age group, beginning with age 40 and ending with age 79. The results follow; $X$ is age, and $Y$ is a measure of muscle mass. Assume that first-order regression model (1.1) is appropriate.}
+
+> Loading Data
+
+```{r problem 1.27 loading data}
+df27 = read.delim("CH01PR27.txt", header=FALSE, sep="")
+colnames(df27) = c("y", "x")
+```
+
+## a. Obtain the estimated regression function. Plot the estimated regression function and the data. Does a linear regression function appear to give a good fit here? Does your plot support the anticipation that muscle mass decreases with age?
+
+> Solution
+
+```{r problem 1.27a}
+lmFit27 = lm(y~x, df27)
+print(summary(lmFit27))
+
+plot(df27$x, df27$y, xlab="Age", ylab="Muscle Mass")
+abline(lmFit27)
+```
+
+So $y = 156.34 - 1.19x$
+Assessing the plot, it does appear to support the anticipation that muscle mass decreases with age.
+
+## b. Obtain the following: (1) a point estimate of the difference in the mean muscle mass for women differing in age by one year, (2) a point estimate of the mean muscle mass for women aged $X =60$ years, (3) the value of the residual for the eighth case, (4) a point estimate of $\sigma^2$.
+
+> Solution
+
+```{r problem 1.27b}
+
+# 1
+beta1 = lmFit27$coefficients[2]
+print(beta1)
+
+
+# 2
+yHat = predict(lmFit27, data.frame(x=60))
+print(yHat)
+
+
+# 3
+yHat = predict(lmFit27)
+
+resids = (df27$y - yHat)
+print(resids)
+
+# Same thing, different syntax
+# resids = lmFit27$residuals
+# print(resids)
+
+print(resids[8])
+
+
+# 4
+# Degrees of freedom residual
+dfResid = lmFit27$df.residual
+SSE = (sum(resids^2))
+
+MSE = (SSE/dfResid)
+print(MSE)
+```
+
+> 
+
+# 2.05. Reference to Copier maintenance {.tabset}
+\textbf{The Tri-City Office Equipment Corporation sells an imported copier on a franchise basis and performs preventive maintenance and repair service on this copier. The data below have been collected from 45 recent calls on users to perform routine preventive maintenance service; for each call, X is the number of copiers serviced and Y is the total number of minutes spent by the service person. Assume that first-order regression model (1.1) is appropriate.}
+
+```{r problem 2.5 load data}
+# Load data
+df20 = read.delim("CH01PR20.txt", header=FALSE, sep="")
+colnames(df20) = c("y", "x")
+```
+## a. Estimate the change in the mean service time when the number of copiers serviced increases by one. Use a $90$ percent confidence interval. Interpret your confidence interval.
+
+```{r problem 2.5a}
+# Create linear model from data
+lmFit20 = lm(y~x, df20)
+print(summary(lmFit20))
+```
+
+So the estimated change in the mean service time when the number of copiers serviced increases by one is: 15.0352 which is the estimated slope ($b_1$) and the s($b_1$) is .4831
+
+
+```{r problem 2.5a-2}
+#Finding our t-distribution
+#In this case we want to first get our degrees of freedom which we can see from our summary is: 43 
+#or we can use our anova function to find the same
+anova(lmFit20)
+
+
+#We can find our t-distribution with our degrees of freedom
+tdist = qt(1-.10/2, 43)
+print(tdist)
+```
+
+```{r problem 2.5a-1}
+#Use a 90 Percent Confidence Interval
+confint(lmFit20, level=.9)
+
+#or you can write it all out without a function: 
+c(15.0352-1.6811*0.4831, 15.0352+1.6811*0.4831)
+```
+
+So our $b_1$ interval would be: 14.223 <= $b_1$ <= 15.847 90% of the time. 
+with $t$(.95,43): 1.681
+
+## b. Conduct a $t$ test to determine whether or not there is a linear association between $X$ and $Y$ here; control the a risk at $.10$. State the alternatives, decision rule, and conclusion. What is the $P-value$ of your test?
+
+$H_0$: $B_1$ = 0, $H_a$: $B_1 != 0 
+
+So our test statistic is: t = $b_1$ / SD($b_1$)= (15.0352 - 0) / .4831 
+Or you can see it above under t value of x
+
+```{r problem 2.5b}
+t = ( 15.0352 - 0 ) / .4831
+print(t)
+
+```
+
+The decision rule would be: reject $H_0$ if $t$ > 1.681 or reject $H_0$ if the p-value < .1 
+
+The conclusion: Reject the hypothesis 
+
+P-Value: P($t_43$ > 31.123) < 0.000001 or as seen in our summary: 2.2e-16 
+
+```{r problem 2.5b-1}
+#Calculate the p-value 
+p = 1-pt(31.122,43) 
+print(p)
+```
+## c. Are your results in parts (a) and (b) consistent? Explain.
+
+ Yes they are consistent because we see that the 90% confidence interval of $b_1$ doesn't include 0 so the hypothesis that $b_1$ = 0 at a 10% sig. level will be rejected. 
+
+## d. The manufacturer has suggested that the mean required time should not increase by more than $14$ minutes for each additional copier that is serviced on a service call. Conduct a test to decide whether this standard is being satisfied by Tri-City. Control the risk of a Type I error at $.05$. State the alternatives, decision rule, and conclusion. What is the $P-value$ of the test?
+
+$H_0$: $B_1$ <= 14, $H_a$: $B_1 > 14
+
+So our test statistic is: t = $b_1$ / SD($b_1$)= (15.0352 - 14) / .4831 
+
+The decision rule would be: reject $H_0$ if $t$ > 1.681 or reject $H_0$ if the p-value < .05
+
+```{r problem 2.5b-2}
+#test statistic: 
+t1 = ( 15.0352 - 14 ) / .4831
+print(t1)
+``` 
+
+The conclusion: Reject the hypothesis 
+
+```{r problem 2.5b-3}
+#p-value calculation: 
+p = 1 - pt(2.148,43)
+print(p)
+```
+
+P-Value: P($t_43$ > 2.1428) = 0.0189
+
+## e. Does $b_0$ give any relevant information here about the "start-up" time on calls-i.e., about the time required before service work is begun on the copiers at a customer location?
+
+ No $b_0$ does not give any relevant information since it is negative and would not provide anything meaningful. 
+ 
+>
+

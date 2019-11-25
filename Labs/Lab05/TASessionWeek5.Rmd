@@ -1,0 +1,278 @@
+---
+title: "TASessionWeek5"
+author: "CSCI E-106 Staff"
+date: "10/10/2019"
+output: pdf_document
+---
+
+```{r}
+library(ggplot2)
+library(MASS)
+```
+
+
+# Question 4.27
+
+_Refer to the SENIC data set in Appendix C.1 and Project 1.45.  Consider the regression relation of average length of stay to infection risk._
+
+_a. Obtain Bonferroni joint confidence intervals for $\beta_0$ and $\beta_1$, using a 90 percent family confidence coefficient._
+
+```{r}
+#Read data into a data frame
+dts2 <- read.table(url("http://www.stat.purdue.edu/~minzhang/525-Spring2018/Datasets_files/APPENC01.txt"), quote="\"", comment.char="")
+colnames(dts2) <- c("ID", "LoS", "A", "IR", "RCR", "RCXR", "NB",
+                    "MSA", "R", "ADC", "NoN", "AFS")
+```
+
+```{r}
+#Regression relation of average length of stay to infection risk
+mdl2 <- lm(LoS~IR, dts2)
+summary(mdl2)
+```
+
+```{r}
+B <- qt(1-.10/(2*2), mdl2$df.residual)
+
+print("Joint confidence interval for b_0 is from")
+coef(mdl2)[1] - coef(summary(mdl2))[1, 2]*B
+print("to")
+coef(mdl2)[1] + coef(summary(mdl2))[1, 2]*B
+
+print("Joint confidence interval for b_1 is from")
+coef(mdl2)[2] - coef(summary(mdl2))[2, 2]*B
+print("to")
+coef(mdl2)[2] + coef(summary(mdl2))[2, 2]*B
+
+
+```
+
+
+_b. A researcher has suggested that $\beta_0$ should be approximately 7 and $\beta_1$ should be approximately 1.  Do the joint confidence intervals in part (a.) support this expectation?_
+
+The joint confidence intervals in part (a.) do not support this view.
+
+_c It is desired to estimate the expected hospital stay for persons with infection risks $X = 2, 3, 4, 5$ with family confidence coefficient $.95$. Which procedure, the Working-Hotelling or the Bonferroni, is more efficient here?_
+
+```{r}
+
+W <- sqrt(2*qf(.95, 2, 111))
+B <- qt(.99375, 111)
+W
+B
+
+```
+
+Working-Hotelling is tighter, i.e., more efficient.
+
+
+_d Obtain the family of interval estimates required in part (c), using the more efficient procedure. Interpret your confidence intervals._ 
+
+```{r}
+Xh <-data.frame(IR = 2:5)
+
+pred2 <- predict(mdl2,newdata = Xh, se.fit = TRUE)
+
+print(paste0("Family confidence interval for ",Xh[1,1]  ," is from:"))
+pred2$fit[1] - pred2$se.fit[1]*W
+print("to")
+pred2$fit[1] + pred2$se.fit[1]*W
+
+print(paste0("Family confidence interval for ",Xh[2,1]  ," is from:"))
+pred2$fit[2] - pred2$se.fit[2]*W
+print("to")
+pred2$fit[2] + pred2$se.fit[2]*W
+
+print(paste0("Family confidence interval for ",Xh[3,1]  ," is from:"))
+pred2$fit[3] - pred2$se.fit[3]*W
+print("to")
+pred2$fit[3] + pred2$se.fit[3]*W
+
+print(paste0("Family confidence interval for ",Xh[4,1]  ," is from:"))
+pred2$fit[4] - pred2$se.fit[4]*W
+print("to")
+pred2$fit[4] + pred2$se.fit[4]*W
+
+
+```
+
+## (Textbook 3.17) Sales growth. 
+A marketing researcher studied annual sales of a product that had been introduced $10$ years ago. The data are as follows, where $X$ is the year (coded) and $Y$ is sales in thousands of units:
+
+
+*Please use dataset titled: **CH03PR17.txt***
+
+a. Prepare a scatter plot of the data. Does a linear relation appear adequate here?
+
+<!-------------------------------------->
+\textbf{Solution Below}
+
+<!-- Input solution below -->
+```{r problem 3.17a}
+df_sales = read.table(url("http://users.stat.ufl.edu/~rrandles/sta4210/Rclassnotes/data/textdatasets/KutnerData/Chapter%20%203%20Data%20Sets/CH03PR17.txt"), header=FALSE, sep="", 
+                      col.names=c("sales", "year"))
+
+lmFit317 = lm(sales~year, data=df_sales)
+
+# Method #1
+plot(df_sales$year, df_sales$sales, xlab="Year", ylab="Sales", main="Year vs. Sales")
+
+# Method #2
+plot_317a = ggplot(data=df_sales, aes(x=year, y=sales)) + 
+        geom_point(color="cornflowerblue") + 
+        geom_smooth(color="darkseagreen", method="lm", se=FALSE) +
+        labs(title="Year vs. Sales", 
+                 x="Year", y="Sales")
+        
+plot_317a
+```
+
+*Interpretation*
+
+Creating a scatter plot of the data and analyzing it, it does appear there is a linear relationship between year and sales.
+
+<!-- End of solution -->
+
+>
+
+<!-------------------------------------->
+
+b. Use the Box-Cox procedure and standardization (3.36) to find an appropriate power transformation of $Y$. Evaluate SSE for $\lambda = .3, .4, .5, .6, .7$. What transformation of $Y$ is suggested?
+
+
+<!-------------------------------------->
+\textbf{Solution Below}
+
+<!-- Input solution below -->
+```{r problem 3.17b, fig.height=10, fig.width=10, fig.align = "center"}
+# mfrow argument takes in a vector specifying layout for subsequent displays of figures
+par(mfrow=c(2,1))
+boxcox(lmFit317)
+boxcox(lmFit317, lambda=c(0.3,0.4,0.5,0.6,0.7))
+
+```
+*Interpretation*
+
+The Box-Cox procedure identified $\lambda = 0.5$ as the best power transformation.  Referring back to page 135, $\lambda = 0.5$ which suggests a square-root transformation.
+
+
+<!-- End of solution -->
+
+>
+
+<!-------------------------------------->
+
+c. Use the transformation $Y' = \sqrt{Y}$ and obtain the estimated linear regression function for the transformed data.
+
+<!-------------------------------------->
+\textbf{Solution Below}
+
+<!-- Input solution below -->
+```{r problem 3.17c}
+df_sales = cbind(df_sales, sqrt(df_sales$sales))
+colnames(df_sales)[3] = "salesTrans"
+
+lmFit317b = lm(salesTrans~year, data=df_sales)
+summary(lmFit317b)
+
+```
+<!-- End of solution -->
+
+>
+
+<!-------------------------------------->
+
+d. Plot the estimated regression line and the transformed data. Does the regression line appear to be a good fit to the transformed data?
+
+<!-------------------------------------->
+\textbf{Solution Below}
+
+<!-- Input solution below -->
+```{r problem 3.17d}
+
+# Method #1
+plot(df_sales$year, df_sales$salesTrans, 
+     xlab="Year", ylab="Sales (in transformed units)",
+     main="Year vs. Sales (in transformed units)")
+abline(lmFit317b)
+
+# Method #2
+plot_317b = ggplot(data=df_sales, aes(x=year, y=salesTrans)) + 
+        geom_point(color="palevioletred1") + 
+        geom_smooth(color="midnightblue", method="lm", se=FALSE) +
+        labs(title="Year vs. Sales (in transformed units)", 
+                 x="Year", y="Sales (in transformed units)")
+        
+plot_317b
+```
+*Interpretation*
+
+Assessing the plot(s), it looks like a linear regression model is a great fit. Looking at the summary, we see that the r-sqaured value is $0.98$. 
+
+<!-- End of solution -->
+
+>
+
+<!-------------------------------------->
+
+e. Obtain the residuals and plot them against the fitted values. Also prepare a normal probability plot. What do your plots show?
+
+<!-------------------------------------->
+\textbf{Solution Below}
+
+<!-- Input solution below -->
+```{r problem 3.17e}
+ei= resid(lmFit317b)
+print(ei)
+
+yhat = fitted.values(lmFit317b)
+print(yhat)
+
+# Method #1
+plot(yhat, ei, xlab=expression(hat(Y)), ylab=expression("e"[i]),
+        main=expression(hat(Y)~"vs."~"e"[i]))
+
+# Method #2
+plot_317e = ggplot(mapping=aes(x=yhat, y=ei)) + 
+        geom_point(color="darkorchid") + 
+        labs(title=expression(hat(Y)~"vs."~"e"[i]), 
+                 x=expression(hat(Y)), y=expression("e"[i]))
+        
+plot_317e
+
+par(mfrow=c(2,2))
+plot(lmFit317b)
+
+```
+*Interpretation*
+
+Residuals vs Fitted plot shows if residuals have non-linear patterns. Equally spread residuals around a horizontal line without distinct patterns, which suggests there aren't non-linear relationships.
+
+Normal Q-Q plot shows if residuals are normally distributed. QQ plot indicates "S" shape, which shows heavy tails. This suggests the data have more extreme values than would be expected if they truly came from a Normal distribution.
+
+Spread-Location plot shows if residuals are spread equally along the ranges of predictors and how we can check the assumption of equal variance (homoscedasticity). A horizontal line suggests equally (randomly) spread points.
+
+Residuals vs Leverage plot helps us to find influential cases (i.e., subjects) if any exists. Plot shows no influential cases, as we can barely see Cook's distance lines (a red dashed line) because all cases are well inside of the Cook's distance lines.
+
+
+<!-- End of solution -->
+
+>
+
+<!-------------------------------------->
+
+f. Express the estimated regression function in the original units.
+
+<!-------------------------------------->
+\textbf{Solution Below}
+
+<!-- Input solution below -->
+
+*Interpretation*
+
+Since the Box-Cox suggested $\lambda=0.5$ for transformation (i.e., the square root of the original data), the back-transformation for the original units involves squaring the transformed data.
+
+<!-- End of solution -->
+
+>
+
+<!-------------------------------------->

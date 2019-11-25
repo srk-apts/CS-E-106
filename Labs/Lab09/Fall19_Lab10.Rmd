@@ -1,0 +1,436 @@
+---
+title: "Fall 2019 Lab 10"
+date: "11/14/2019"
+output: pdf_document
+toc: true
+number_sections: false
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+
+# Function to load or download libraries
+loadLib = function(libName)
+{
+    if(require(libName, character.only=TRUE))
+    {
+        cat(libName, "loaded properly\n")
+    } else {
+        cat("Installing", libName, "\n")
+        install.packages(libName)
+        if(require(libName, character.only=TRUE))
+        {
+            cat(libName, "loaded properly\n")
+        } else {
+            stop(c(libName, "not properly installed\n"))
+        }
+    }
+}
+
+libs = c("ggplot2", "knitr", "MASS", "rms", "leaps", "GGally", "corrplot", "mgcv")
+
+for (lib in libs)
+{
+    loadLib(lib)
+}
+```
+# Question 8.06. Steroid level. 
+
+\textit{An endocrinologist was interested in exploring the relationship between the level of a steroid $(Y)$ and age $(X)$ in healthy female subjects whose ages ranged from $8$ to $25$ years She collected a sample of $27$ healthy females in this age range.}
+>
+
+
+a. Fit regression model (8.2). Plot the fitted regression function and the data. Does the quadratic regression function appear to be a good fit here? Find $R^2$.
+
+
+
+<!-- Input problem below -->
+```{r problem 8.06 load data}
+df806 = read.table("CH08PR06.txt", header=FALSE, sep="")
+colNames =  c("Y", "X");
+colnames(df806) = colNames
+colNames
+```
+
+```{r problem 8.06a}
+attach(df806)
+x1 = df806$X-mean(df806$X);
+model806.reg = lm(Y~x1+I(x1^2), data=df806)
+summary(model806.reg)
+
+coeffs = summary(model806.reg)$coefficients
+cat(sprintf("The regression model is Yhat = %f + %f*x1 + %f*x1^2\n", coeffs[1,1], coeffs[2,1], coeffs[3,1]))
+cat(sprintf("R^2: %f\n", summary(model806.reg)$r.squared))
+
+xnew = data.frame(x1 = seq(from = min(x1), to = max(x1), length.out = 200))
+pred = predict.lm(model806.reg, newdata = xnew)
+plot (x1, df806$Y)
+lines(pred~xnew$x1, col="blue")
+legend("topleft", c("quadratic"), col = c("blue"), lty = 1)
+
+cat("The quadratic regression function appears to be a good fit")
+
+```
+
+<!-- End of problem -->
+
+>
+
+b. Test whether or not there is a regression relation; use $\alpha = .01$. State the alternatives, decision rule, and conclusion. What is the $P$-value of the test?
+
+
+
+<!-- Input problem below -->
+```{r problem 8.06b}
+df_regression = 2
+MSR = (anova(model806.reg)$"Sum Sq"[1] + anova(model806.reg)$"Sum Sq"[2])/df_regression
+MSR
+MSE = anova(model806.reg)$"Mean Sq"[3]
+MSE
+
+Fstat = MSR/MSE
+Fstat
+alpha = 0.01
+df_residual = anova(model806.reg)$Df[3] 
+df_residual
+Fcritical = qf(1-alpha, df_regression, df_residual)
+Fcritical
+cat("Since Fstat > Fcritical, we conclude Ha. not all betak's are 0\n")
+cat("Regression relation is significant\n")
+```
+
+<!-- End of problem -->
+
+>
+
+c. Obtain joint interval estimates for the mean steroid level of females aged $10$, $15$, and $20$ respectively. Use the most efficient simultaneous estimation procedure and a $99$ percent family confidence coefficient. Interpret your intervals.
+
+
+
+<!-- Input problem below -->
+```{r problem 8.06c}
+g = 3
+alpha = 0.01
+n = length(X)
+B = qt(1-(alpha/(2*g)), n-3)
+B
+
+W2 = 2*qf(0.99, 3, 24)
+W = sqrt(W2)
+W
+
+cat("Since W is less than B, we will use Working-Hoteling to estimate intervals\n")
+
+xnew = data.frame(x1 = c(10, 15, 20))
+pred = predict.lm(model806.reg, newdata=xnew, se.fit=TRUE, interval="confidence", level=0.99)
+pred$se.fit
+
+cat(sprintf("For x1=10: %f <= E{Yh} <= %f\n", pred$fit[1]-W*pred$se.fit[1], pred$fit[1]+W*pred$se.fit[1]))
+
+cat(sprintf("For x1=15: %f <= E{Yh} <= %f\n", pred$fit[2]-W*pred$se.fit[2], pred$fit[2]+W*pred$se.fit[2]))
+
+cat(sprintf("For x1=20: %f <= E{Yh} <= %f\n", pred$fit[3]-W*pred$se.fit[3], pred$fit[3]+W*pred$se.fit[3]))
+
+
+```
+
+<!-- End of problem -->
+
+>
+
+d. Predict the steroid levels of females aged $15$ using a $99$ percent prediction interval. Interpret your interval.
+
+
+
+<!-- Input problem below -->
+```{r problem 8.06d}
+xnew = data.frame(x1 = c(15))
+pred = predict.lm(model806.reg, newdata=xnew, se.fit=TRUE, interval="prediction", level=0.99)
+s_pred = sqrt(pred$residual.scale^2 + pred$se.fit^2)
+s_pred
+alpha = 0.01
+n = length(X)
+n
+tval = qt(1-alpha/2, n-3)
+tval
+
+cat(sprintf("For x1=15: Prediction interval is %f <= Yhnew <= %f\n", pred$fit[2], pred$fit[3]))
+
+
+
+```
+
+<!-- End of problem -->
+
+>
+
+e. Test whether the quadratic term can be dropped from the model; use $\alpha = .01$. State the alternatives, decision rule, and conclusion.
+
+
+
+<!-- Input problem below -->
+```{r problem 8.06e}
+se_b11 = 0.02347
+tstat = -0.1184/0.02347
+tstat
+
+tcritical = qt(0.995, 24)
+tcritical
+
+cat(sprintf("Since abs(tstat) > tcritical, we conclude Ha. The quadratic term is significant\n"))
+
+
+```
+
+<!-- End of problem -->
+
+>
+
+f. Express the fitted regression function obtained in part (a) in terms of the original variable $X$.
+
+
+<!-- problem below -->
+```{r problem 8.06f}
+b0_prime = summary(model806.reg)$coefficients[1,1] - summary(model806.reg)$coefficients[2,1]*mean(X) + summary(model806.reg)$coefficients[3,1]*(mean(X)^2)
+b0_prime
+
+b1_prime = summary(model806.reg)$coefficients[2,1] - 2*mean(X)*summary(model806.reg)$coefficients[3,1]
+b1_prime
+
+b11_prime = summary(model806.reg)$coefficients[3,1]
+b11_prime
+
+cat(sprintf("The regression function in terms of original X is %f + %f*X + %f*X^2\n", b0_prime, b1_prime, b11_prime))
+
+```
+
+<!-- End of problem -->
+
+>
+
+# Question 9.12. Reference to Market share data set in Appendix C.3 and Problem 8.42.
+>
+
+a. Using only first-order terms for predictor variables, find the three best subset regression models according to the $SBC_p$ criterion.
+
+<!-- Input problem below -->
+```{r problem loading data 9.12}
+ms.df <- read.table("APPENC03.txt", header=FALSE, col.names = c("X1", "X2", "X3", "X4", "X5", "X6", "X7", "X8"))
+ms.df$X8 = factor(ms.df$X8, ordered=FALSE)
+#relevel the factor with reference as year=2000
+ms.df$X8 = relevel(ms.df$X8, ref="2000")
+#removing month (X7), as this variable is not of interest
+```
+
+```{r problem 9.12a}
+attach(ms.df)
+cat("X2 = market share, X3 = price, X4 = Nielsen, X5 = discount, \n X6 = package promo, X8 = year\n")
+reg1 = regsubsets(X2 ~ X3 + X4 + X5 + X6 + X8,
+  data = ms.df, nbest=3, nvmax = 5)
+summary(reg1)
+res.sum = summary(reg1)
+
+res.sum$bic
+#top 3 indexes corresponding to lowest sbc/bic are 7, 1 and 10
+order(res.sum$bic)
+#The rows corresponding to index 7, 1 and 10 from summary(reg1):
+cat("ANSWER\n")
+cat("X3(price), X5(discount) and X6(promo) has the lowest SBC value\n")
+cat("X5(discount)\n")
+cat("X3,X5,X6,X8=2001\n")
+
+
+```
+
+<!-- End of problem -->
+
+>
+
+b. Is your finding here in agreement with what you found in Problem 8.42(b) and (c)?
+
+<!-- Input problem below -->
+```{r problem 9.12b}
+cat("The regression subset in problem 9.12a provides a good starting point to \n identify the important predictor variables\n")
+cat("The variables advertising index and year can be dropped based on results of\n there ssr contributions, and f-stat being less than fcritical\n")
+cat("The quadratic terms corresponding to quantitative variables price improves the model\n")
+
+
+
+```
+
+<!-- End of problem -->
+
+>
+
+# Question 9.27. Reference to SENIC data set in Appendix C.1.
+\textit{The primary objective of the Study on the Efficacy of Nosocomial Infection Control (SENIC Project) was to determine whether infection surveillance and control programs have reduced the rates of nosocomial (hospital-acquired) infection in United States hospitals. This data set consists of a random sample of 113 hospitals selected from the original 338 hospitals surveyed. Each line of the dataset has an identification number and provides information on 11 variables for a single hospital. The data presented here are for the 1975-76 study period.}
+
+>
+
+The regression model identified as best in Project 9.25 is to be validated by means of the validation data set consisting of cases 1-56.
+
+a. Fit the regression model identified in Project 9.25 as best to the validation data set. Compare the estimated regression coefficients and their estimated standard deviations with those obtained in Project 9.25. Also compare the error mean squares and coefficients of multiple determination. Does the model fitted to the validation data set yield similar estimates as the model fitted to the model-building data set?
+
+
+<!-- Input problem below -->
+```{r problem 9.27 load data}
+senic.df <- read.table("APPENC01.txt", header=FALSE, col.names = c("id", "los", "age", "infection_risk", "rcr", "xray", "nbds", "msa", "region", "adc", "numnurses", "facilities"))
+senic.df[ ,c('msa', 'region')] <- list(NULL)
+```
+
+```{r problem 9.25c and 9.27a}
+#use cases 57-113 to build model
+model.df = senic.df[57:113,]
+attach(model.df)
+model = regsubsets(log(los) ~ age + infection_risk + rcr + xray + nbds +adc + numnurses + facilities,
+  data = model.df, nbest=3, nvmax = 5)
+summary(model)
+
+res.sum = summary(model)
+
+res.sum$cp
+#top 3 indexes corresponding to lowest cp are 7, 10 and 11
+order(res.sum$cp)
+#we will pick the lowest cp as the best model
+#this corresponds to variables X3(age), X6(xray ratio), and X10(adc-average daily census)
+cat("Lowest cp corresponds to X3, X6 and X10\n")
+
+model925 = lm(log10(los)~age+xray+adc, data=model.df)
+summary(model925)
+
+val.df = senic.df[1:56,]
+attach(val.df)
+model927 = lm(log10(los)~age+xray+adc, data=val.df)
+summary(model927)
+
+#comparison table
+model925_values = c(summary(model925)$coefficients[1,1], summary(model925)$coefficients[1,2], summary(model925)$coefficients[2,1], summary(model925)$coefficients[2,2], summary(model925)$coefficients[3,1], summary(model925)$coefficients[3,2], summary(model925)$coefficients[4,1], summary(model925)$coefficients[4,2], anova(model925)$"Mean Sq"[4], summary(model925)$r.squared)
+
+model927_values = c(summary(model927)$coefficients[1,1], summary(model927)$coefficients[1,2], summary(model927)$coefficients[2,1], summary(model927)$coefficients[2,2], summary(model927)$coefficients[3,1], summary(model927)$coefficients[3,2], summary(model927)$coefficients[4,1], summary(model927)$coefficients[4,2], anova(model927)$"Mean Sq"[4], summary(model927)$r.squared)
+
+answer.df = data.frame(model925_values, model927_values)
+colnames(answer.df) = c("Model-building", "Validation")
+rownames(answer.df) = c("b0", "s_b0", "b3", "s_b3", "b6", "s_b6", "b10", "s_b10", "MSE", "R^2")
+answer.df
+
+cat("ANALYSIS")
+cat("The coefficient and standard error estimates are close between \n the 2 models for intercept, b3, and b6.\n ")
+cat("The b10 and its standard error estimates are about ~2x off between the 2 models\n")
+cat("The MSE is 30% higher for validation model data set\n")
+cat("The R^2 value is ~40% lower for validation model data set suggesting a poor fit\n")
+
+
+```
+
+<!-- End of problem -->
+
+>
+
+b. Calculate the mean squared prediction error in (9.20) and compare it to $MSE$ obtained from the model-building data set. Is there evidence of a substantial bias problem in $MSE$ here?
+
+
+<!-- Input problem below -->
+```{r problem 9.27b}
+
+#calculate MSPR
+xnew = data.frame(val.df$age, val.df$xray, val.df$adc)
+colnames(xnew) = c("age", "xray", "adc")
+pred = predict.lm(model925, newdata=xnew)
+resid = log10(val.df$los) - pred
+MSPR = (sum(resid^2))/56
+MSPR
+cat("The MSPR for validation data set is about 50% higher compared \n to MSE of model building data set ")
+
+```
+<!-- End of problem -->
+
+>
+
+c. Combine the model-building and validation data sets and fit the selected regression model to the combined data. Are the estimated regression coefficients and their estimated standard deviations appreciably different from those for the model-building data set? Should you expect any differences in the estimates? Explain.
+
+<!-- Input problem below -->
+```{r problem 9.27c}
+attach(senic.df)
+model927c = lm(log10(los)~age+xray+adc, data=senic.df)
+summary(model927c)
+cat("For the combined data set\n")
+cat(sprintf("The regression function is log10Y = %f + %f*X3 + %f*X6 + %f*X10\n", summary(model927c)$coefficients[1,1], summary(model927c)$coefficients[2,1],summary(model927c)$coefficients[3,1],
+summary(model927c)$coefficients[4,1]))
+cat(sprintf("Standard errors for s_b0=%f, s_b3=%f, s_b6=%f, s_b10=%f\n", 
+            summary(model927c)$coefficients[1,2], summary(model927c)$coefficients[2,2], summary(model927c)$coefficients[3,2], summary(model927c)$coefficients[4,2]))
+
+cat("ANALYSIS\n")
+cat("The standard errors for the full data set are lower than the model build data set\n")
+cat("This may be due to larger data sample and increased certainty in the model\n")
+cat("The coefficients for the full model (entries 1-113) appear\n to be close to the model building (entries 57-113)data set\n")
+
+```
+
+<!-- End of problem -->
+
+>
+
+
+
+# Question 9.31. Refer to Real estate sales data set in Appendix C.7.
+\textit{ Residential sales that occurred during the year 2002 were available from a city in the midwest. Data on 522 arms-length transactions include sales price, style, finished square feet, number of bedrooms, pool, lot size, year built, air conditioning, and whether or not the lot is adjacent to a highway. The city tax assessor was interested in predicting sales price based on the demographic variable information given above. Select a random sample of 300 observations to use in the model-building data set. Develop a best subset model for predicting sales price. Justify your choice of model. Assess your model's ability to predict and discuss its use as a tool for predicting sales price.}
+
+```{r}
+dts4 <- read.table("APPENC07.txt", header=FALSE)
+colnames(dts4) <- c(
+  "ID",
+  "Price",
+  "Sqft",
+  "Beds",
+  "Baths",
+  "AC",
+  "GarageSize",
+  "Pool",
+  "YearBuilt",
+  "Quality",
+  "Style",
+  "LotSize",
+  "AdjToHwy"
+)
+
+# only expected variables
+
+set.seed(123)
+
+dts4 <- dts4[,!(colnames(dts4) %in% c("ID","Quality","GarageSize","Baths"))]
+
+tr <- sample(1:nrow(dts4))
+
+dts4 <- dts4[sample(1:nrow(dts4)), ]
+dts4train = dts4[tr[1:300],]
+dts4test = dts4[tr[301:522],]
+
+ggcorr(dts4train, label=TRUE)
+
+# obvious suspects - square footage, year used, style and bedrooms (usually you bucket year built into the age variable) 
+
+mdl4 = lm(Price~Sqft,dts4train)
+summary(mdl4)
+
+
+mdl4b = lm(Price~Sqft + YearBuilt,dts4train)
+summary(mdl4b)
+
+mdl4c = lm(Price~Sqft + YearBuilt + factor(Style),dts4train)
+summary(mdl4c)
+
+# Increasing model is not beneficial, almost no increase in R-sq
+summary(lm(Price~Sqft + YearBuilt + factor(Style) + AC + LotSize + Pool + Beds,dts4train))
+
+#most likely the best model is mdl4c
+plot(mdl4c)
+plot(fitted(mdl4c),resid(mdl4c))
+boxcox(mdl4c)
+
+```
+
+The model perform well for predicted home prices that are on a lower side. There are many outliers for the larger size houses.
+
+>

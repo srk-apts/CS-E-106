@@ -1,0 +1,436 @@
+---
+title: 'CSCI E-106: Section 03'
+output:
+  pdf_document:
+    fig_caption: yes
+    toc: yes
+  html_document:
+    df_print: paged
+    toc: yes
+date: "09/18/2019"
+---
+
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+knitr::opts_chunk$set(tidy.opts=list(width.cutoff=80),tidy=TRUE, 
+                      fig.width=10, fig.height=5)
+
+
+
+library("knitr")
+library("plyr")
+library("ggplot2")
+library("scatterplot3d")
+library("MASS")
+```
+
+## (Textbook 2.62) Refer to the CDI data set in Appendix C.2 and Project l.43. 
+\textit{This data set provides selected county demographic information (CDI) for 440 of the most populous counties in the United States. Each line of the data set has an identification number with a county name and state abbreviation and provides information on 14 variables for a single county. Counties with missing data were deleted from the data set. The information generally pertains to the years 1990 and 1992... More information on page 1349.}
+
+*Please use dataset titled: **APPENC02.txt***
+
+>
+
+Using $R^2$ as the criterion, which predictor variable accounts for the largest reduction in the variability in the number of active physicians?
+
+<!-------------------------------------->
+\textbf{Solution Below}
+
+<!-- Input solution below -->
+
+```{r problem 2.62 load data}
+df_cdi = read.table(url("https://www.stat.purdue.edu/~bacraig/datasets525/APPENC02.txt") , header=FALSE, sep="")
+cdiColNames =  c("id", "county", "state", "landArea", "totPop", 
+                     "percAge18_34", "percAge65plus", "actPhysicians",
+                     "hospBeds", "totSerCrimes", "percHSgrads", "percBachDeg",
+                     "percBelowPov", "percUnempl", "perCapitaInc", 
+                     "totPersIncome", "geoRegion")
+
+colnames(df_cdi) = cdiColNames
+
+# Displays 6 rows
+head(df_cdi)
+tail(df_cdi)
+
+# Numeric summaries
+summary(df_cdi)
+
+```
+
+```{r problem 2.62 rSquare function}
+
+# Custom function for obtaining rSquare from linear model
+getRsquare = function(response, predictor, df)
+{
+    formula = paste0(response, "~", predictor)
+    tempModel = lm(as.formula(formula), data=df)
+    rSquare = summary(tempModel)$r.squared
+
+    return(round(signif(as.numeric(rSquare), digits=5), digits=5))
+}
+
+```
+
+```{r problem 2.62 rSquare for each var}
+# col 2,3,17 are categorical vars
+df_rSquare = data.frame()
+
+for (var in cdiColNames[c(1,4:16)])
+{
+    if (var == "actPhysicians")
+    {
+        next
+    }
+    
+    df_rSquare = rbind(df_rSquare, data.frame(t(c(var, getRsquare("actPhysicians", var, df_cdi)))))
+}
+
+colnames(df_rSquare) = c("Variable", "rSquare")
+df_rSquare$rSquare = as.numeric(as.character(df_rSquare$rSquare))
+df_rSquare = data.frame(df_rSquare[order(df_rSquare$rSquare, decreasing=TRUE),], row.names=NULL)
+
+```
+
+\pagebreak
+
+```{r problem 2.62 display table}
+kable(df_rSquare, digits=3, align="c", caption="Problem 2.62: r-squared values for Variables")
+```
+
+*Interpretation*
+
+Table 1 displays the r-squared values for each corresponding numerical variable in descending order. Note that categorical variables were removed since we're not dealing with them in a meaningful way (in subsequent chapters, we'll discuss more in detail about how to properly hande categorical variables). We can see that hospital beds has the highest r-squared value (AKA coefficient of determination).
+
+<!-- End of solution -->
+
+>
+
+<!-------------------------------------->
+
+## (Textbook 3.4) Refer to Copier maintenance Problem 1.20
+
+*Please use dataset titled: **CH01PR20.txt***
+
+>
+
+```{r problem 3.4 load data}
+
+# Semi-descriptive var names for DF and cols 
+Dataset_1_20 = read.table(url("http://users.stat.ufl.edu/~rrandles/sta4210/Rclassnotes/data/textdatasets/KutnerData/Chapter%20%201%20Data%20Sets/CH01PR20.txt"), 
+                          header=FALSE, sep="", 
+                          col.names=c("V1","V2"))
+
+```
+
+a. Prepare a dot plot for the number of copiers serviced $X_I$. What information is
+provided by this plot? Are there any outlying cases with respect to this variable?
+
+```{r problem 3.4a}
+par(mfrow=c(1,2))
+ggplot(Dataset_1_20, aes(x = V1, fill = "red")) + geom_dotplot(dotsize = 0.7)
+ggplot(Dataset_1_20, aes(x = V2, color = "black")) + geom_dotplot(dotsize = 0.7)
+```
+
+> Note: There are no outliers here on either plots.  
+
+
+b. The cases are given in time order. Prepare a time plot for the number of copiers serviced. What does your plot show?
+
+```{r problem 3.4b}
+
+plot(Dataset_1_20$V2,type="b",col="blue",xlab="Run", ylab="Number of Copiers Serviced")
+```
+
+> We do not see a time effect. 
+
+
+c. Prepare a stem-and-leaf plot of the residuals. Are there any noteworthy features in this plot?
+```{r problem 3.4c}
+
+stem(Dataset_1_20$V2)
+
+stem(Dataset_1_20$V1)
+
+```
+
+> We do not see any outliers with the plot of the residuals. If anything, it is roughly normal or a little slightly right skewed. 
+
+
+d. Prepare residual plots of ei versus $Y_i$ and ei versus $X_i$ on separate graphs. Do these plots provide the same information? What departures from regression model (2.1) can be studied from these plots? State your findings.
+```{r problem 3.4d}
+
+f_1_20 = lm(V1~V2,data=Dataset_1_20)
+ei = f_1_20$residuals
+yhat= f_1_20$fitted.values
+yi= Dataset_1_20$V1
+xi= Dataset_1_20$V2
+
+par(mfrow=c(1,2))
+plot(ei,yhat)
+plot(xi,yhat)
+plot(ei,yhat)
+plot(ei,xi)
+plot(ei,yi)
+
+```
+> In this case if you compare them then the plots look identical. 
+
+
+e. Prepare a normal probability plot of the residuals. Also obtain the coefficient of correlation between the ordered residuals and their expected values under normality. Does the normality assumption appear to be tenable here? Use Table B.6 and alpha = .10.
+```{r problem 3.4e}
+#there are two ways that this can be done 
+
+#long way to do this: 
+
+anova(f_1_20)
+MSE = 79
+
+summary(f_1_20)
+ei_rank = rank(ei)
+z1 = (ei_rank - 0.375)/(45+0.25)
+exp_rank = sqrt(MSE)*qnorm(z1)
+part_e = data.frame(ei,ei_rank,z1,exp_rank)
+
+#see all results
+part_e
+print(part_e)
+
+#show in a plot
+plot(exp_rank, ei)
+
+
+#short way to do the same as above and plot 
+par(mfrow=c(2,2))
+plot(f_1_20)
+
+
+#getting correlation information 
+cor.test(exp_rank,ei)
+```
+
+> We see here the distribution is normal with no outliers. 
+> We also reject the null as it is normal. 
+
+f. Prepare a time plot of the residuals to ascertain whether the error terms are correlated over time. What is your conclusion?
+```{r problem 3.4f}
+
+plot(ei,type="b",col="blue",xlab="Run", ylab="Error")
+
+```
+
+> We see no correlation with time.
+
+g. Assume that (3.10) is applicable and conduct the Breusch-Pagan test to determine whether or not the error variance varies with the level of X. Use a = .05. State the alternatives,decision rule, and conclusion.
+```{r problem 3.4g}
+
+ei2 = ei^2
+f = lm(ei2~xi)
+summary(f)
+
+#to find SSE(R) and SSR(R)
+anova(lm(ei2~xi))
+
+#to find SSE(F) and SSR(F)
+anova(f_1_20)
+
+#chi-squared: [SSR(R)/2] / [SSE/n]^2  
+chi = (15155/2) / ((3416/45))^2
+print(chi)
+
+#p 
+p = 1-pchisq(1.314968,2,45)
+print(p)
+```
+> SSR(R) = 15155 
+SSE(R) = 46556 
+df = 43 
+
+
+> SSR(F) = 76960
+SSE(F)= 3416
+df= 43
+
+
+> After all of our above we would see that we will accept our null as the error variance is constant.
+
+
+## (Textbook 3.17) Sales growth. 
+A marketing researcher studied annual sales of a product that had been introduced $10$ years ago. The data are as follows, where $X$ is the year (coded) and $Y$ is sales in thousands of units:
+
+
+*Please use dataset titled: **CH03PR17.txt***
+
+a. Prepare a scatter plot of the data. Does a linear relation appear adequate here?
+
+<!-------------------------------------->
+\textbf{Solution Below}
+
+<!-- Input solution below -->
+```{r problem 3.17a}
+df_sales = read.table(url("http://users.stat.ufl.edu/~rrandles/sta4210/Rclassnotes/data/textdatasets/KutnerData/Chapter%20%203%20Data%20Sets/CH03PR17.txt"), header=FALSE, sep="", 
+                      col.names=c("sales", "year"))
+
+lmFit317 = lm(sales~year, data=df_sales)
+
+# Method #1
+plot(df_sales$year, df_sales$sales, xlab="Year", ylab="Sales", main="Year vs. Sales")
+
+# Method #2
+plot_317a = ggplot(data=df_sales, aes(x=year, y=sales)) + 
+        geom_point(color="cornflowerblue") + 
+        geom_smooth(color="darkseagreen", method="lm", se=FALSE) +
+        labs(title="Year vs. Sales", 
+                 x="Year", y="Sales")
+        
+plot_317a
+```
+
+*Interpretation*
+
+Creating a scatter plot of the data and analyzing it, it does appear there is a linear relationship between year and sales.
+
+<!-- End of solution -->
+
+>
+
+<!-------------------------------------->
+
+b. Use the Box-Cox procedure and standardization (3.36) to find an appropriate power transformation of $Y$. Evaluate SSE for $\lambda = .3, .4, .5, .6, .7$. What transformation of $Y$ is suggested?
+
+
+<!-------------------------------------->
+\textbf{Solution Below}
+
+<!-- Input solution below -->
+```{r problem 3.17b, fig.height=10, fig.width=10, fig.align = "center"}
+# mfrow argument takes in a vector specifying layout for subsequent displays of figures
+par(mfrow=c(2,1))
+boxcox(lmFit317)
+boxcox(lmFit317, lambda=c(0.3,0.4,0.5,0.6,0.7))
+
+```
+*Interpretation*
+
+The Box-Cox procedure identified $\lambda = 0.5$ as the best power transformation.  Referring back to page 135, $\lambda = 0.5$ which suggests a square-root transformation.
+
+
+<!-- End of solution -->
+
+>
+
+<!-------------------------------------->
+
+c. Use the transformation $Y' = \sqrt{Y}$ and obtain the estimated linear regression function for the transformed data.
+
+<!-------------------------------------->
+\textbf{Solution Below}
+
+<!-- Input solution below -->
+```{r problem 3.17c}
+df_sales = cbind(df_sales, sqrt(df_sales$sales))
+colnames(df_sales)[3] = "salesTrans"
+
+lmFit317b = lm(salesTrans~year, data=df_sales)
+summary(lmFit317b)
+
+```
+<!-- End of solution -->
+
+>
+
+<!-------------------------------------->
+
+d. Plot the estimated regression line and the transformed data. Does the regression line appear to be a good fit to the transformed data?
+
+<!-------------------------------------->
+\textbf{Solution Below}
+
+<!-- Input solution below -->
+```{r problem 3.17d}
+
+# Method #1
+plot(df_sales$year, df_sales$salesTrans, 
+     xlab="Year", ylab="Sales (in transformed units)",
+     main="Year vs. Sales (in transformed units)")
+abline(lmFit317b)
+
+# Method #2
+plot_317b = ggplot(data=df_sales, aes(x=year, y=salesTrans)) + 
+        geom_point(color="palevioletred1") + 
+        geom_smooth(color="midnightblue", method="lm", se=FALSE) +
+        labs(title="Year vs. Sales (in transformed units)", 
+                 x="Year", y="Sales (in transformed units)")
+        
+plot_317b
+```
+*Interpretation*
+
+Assessing the plot(s), it looks like a linear regression model is a great fit. Looking at the summary, we see that the r-sqaured value is $0.98$. 
+
+<!-- End of solution -->
+
+>
+
+<!-------------------------------------->
+
+e. Obtain the residuals and plot them against the fitted values. Also prepare a normal probability plot. What do your plots show?
+
+<!-------------------------------------->
+\textbf{Solution Below}
+
+<!-- Input solution below -->
+```{r problem 3.17e}
+ei= resid(lmFit317b)
+print(ei)
+
+yhat = fitted.values(lmFit317b)
+print(yhat)
+
+# Method #1
+plot(yhat, ei, xlab=expression(hat(Y)), ylab=expression("e"[i]),
+        main=expression(hat(Y)~"vs."~"e"[i]))
+
+# Method #2
+plot_317e = ggplot(mapping=aes(x=yhat, y=ei)) + 
+        geom_point(color="darkorchid") + 
+        labs(title=expression(hat(Y)~"vs."~"e"[i]), 
+                 x=expression(hat(Y)), y=expression("e"[i]))
+        
+plot_317e
+
+par(mfrow=c(2,2))
+plot(lmFit317b)
+
+```
+*Interpretation*
+
+Residuals vs Fitted plot shows if residuals have non-linear patterns. Equally spread residuals around a horizontal line without distinct patterns, which suggests there aren't non-linear relationships.
+
+Normal Q-Q plot shows if residuals are normally distributed. QQ plot indicates "S" shape, which shows heavy tails. This suggests the data have more extreme values than would be expected if they truly came from a Normal distribution.
+
+Spread-Location plot shows if residuals are spread equally along the ranges of predictors and how we can check the assumption of equal variance (homoscedasticity). A horizontal line suggests equally (randomly) spread points.
+
+Residuals vs Leverage plot helps us to find influential cases (i.e., subjects) if any exists. Plot shows no influential cases, as we can barely see Cook's distance lines (a red dashed line) because all cases are well inside of the Cook's distance lines.
+
+
+<!-- End of solution -->
+
+>
+
+<!-------------------------------------->
+
+f. Express the estimated regression function in the original units.
+
+<!-------------------------------------->
+\textbf{Solution Below}
+
+<!-- Input solution below -->
+
+*Interpretation*
+
+Since the Box-Cox suggested $\lambda=0.5$ for transformation (i.e., the square root of the original data), the back-transformation for the original units involves squaring the transformed data.
+
+<!-- End of solution -->
+
+>
+
+<!-------------------------------------->
