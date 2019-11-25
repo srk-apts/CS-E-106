@@ -1,0 +1,502 @@
+---
+title: '**CS-E-106: Data Modeling**'
+subtitle: '**Assignment 8**'
+date: '**Due Date:** 11/25/2019'
+author:
+  - '**Instructor: Hakan Gogtas**'
+  - '**Submitted by:** Saurabh Kulkarni'
+output: 
+  pdf_document: 
+    latex_engine: xelatex
+---
+
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(tidy.opts=list(width.cutoff=80), 
+                      fig.width=10, fig.height=5)
+
+loadLib = function(libName)
+{
+    if(require(libName, character.only=TRUE))
+    {
+        cat(libName, "loaded properly\n")
+    } else {
+        cat("Installing", libName, "\n")
+        install.packages(libName)
+        if(require(libName, character.only=TRUE))
+        {
+            cat(libName, "loaded properly\n")
+        } else {
+            stop(c(libName, "not properly installed\n"))
+        }
+    }
+}
+
+libs = c("ggplot2", "knitr", "MASS", "ggcorrplot", "GGally", "alr3", 
+         "lattice", "dplyr", "ALSM", "leaps", "olsrr", "qpcR")
+
+for (lib in libs)
+{
+    loadLib(lib)
+}
+
+```
+
+
+**Question 1** Refer to Brand preference data, build a model with all independent variables (45 pts)
+
+**(a)**	Obtain the studentized deleted residuals and identify any outlying Y observations. Use the Bonferroni outlier test procedure with α = .10. State the decision rule and conclusion. (5pts)
+
+**Solution:**
+
+```{r}
+brand_data = read.csv("Brand Preference.csv")
+lm_brand = lm(Y~., data=brand_data)
+summary(lm_brand)
+```
+
+*Studentized deleted residuals:*
+
+```{r}
+student_del_resids = rstudent(lm_brand)
+plot(student_del_resids)
+```
+
+
+```{r}
+ols_plot_resid_stud_fit(lm_brand)
+```
+
+*Interpretation*
+
+We can see that case 14 is an outlier with regard to the Y observations, based on the studentized deleted residuals.
+
+*Bonferroni Outlier Test:*
+
+$H_0:$ No outlier
+$H_1:$ Atleast one outlier
+
+```{r}
+n = nrow(brand_data)
+p = length(lm_brand$coefficients)
+alpha = 0.1
+tTest = qt(1-alpha/2*n,n-p-1)
+tTest
+
+```
+
+
+```{r}
+any(abs(student_del_resids)>=abs(tTest))
+```
+
+*Decision Rule:*
+
+- If $|t_i| \leq t(1-\alpha/2n; n-p-1)$, $n=i$ is not an outlier.
+- If $|t_i| > t(1-\alpha/2n; n-p-1)$, $n=i$ is an outlier.
+
+*Result:*
+
+Since atleast one $|t_i| > t(1-\alpha/2n; n-p-1)$, we conclude $H_1$. There is atleast one outlier.
+
+
+**(b)** Obtain the diagonal elements of the hat matrix, and provide an explanation for the pattern in these elements. (5pts)
+
+```{r}
+hii = hatvalues(lm_brand)
+index = hii>2*p/n
+index
+```
+
+*Interpretation:*
+
+The hat matrix measures the distance between $X_i$ and $\bar{X}$. The fact that none of the $h_{ii}>\frac{2*p}{n}$ means that all the $X_i$s are more or less close to their means.
+
+**(c)** Are any of the observations outlying with regard to their X values according? (5pts)
+
+We do not see any observations that are outliers with regard to their X values.
+
+**(d)** Management wishes to estimate the mean degree of brand liking for moisture content X1 = 10 and sweetness X2 = 3. Construct a scatter plot of X2 against X1 and determine visually whether this prediction involves an extrapolation beyond the range of the data. Also, use (10.29) to determine whether an extrapolation is involved. Do your conclusions from the two methods agree? (5pts)
+
+```{r}
+plot(brand_data$X1, brand_data$X2)
+```
+
+*Interpretation:*
+
+We can see that $X_{1new}$ and $X_{2new}$ are both well within the range of the given dataset, so we don't need any extrapolation beyond the range of the data already given to us.
+
+```{r}
+X = rep(c(1))
+X = cbind(X, data.matrix(brand_data[,-(names(brand_data)%in%c("Y"))]))
+X
+```
+
+```{r}
+XTX = crossprod(X)
+XTX_inv = solve(XTX)
+XTX_inv
+```
+
+
+```{r}
+Xh = c(1,10,3)
+H_extrap = t(Xh)%*%XTX_inv%*%Xh
+H_extrap
+```
+
+Thus, we see that $h_{new.new}=0.175$
+
+```{r}
+range(hii)
+```
+
+*Interpretation:*
+
+From the above result, we see the value of $h_{new.new}$ is well within the range of the leverage values $h_{ii}$ for the cases in the data set, so no hidden extrapolation is involved for this estimate.
+
+**(e)** The largest absolute studentized deleted residual is for case 14. Obtain the DFFlTS, DFBETAS, and Cook's distance values for this case to assess the influence of this case. What do you conclude? (5pts)
+
+```{r}
+influence_results = influence.measures(lm_brand)
+influence_results$infmat[14,]
+```
+
+*Interpretation:*
+
+|DFBETAS| are all < 1, so case 14 does not have a big influence on betas.
+|DFFITS| > 1, so case 14 has considerable influence on $Y_{14}$.
+According to Cook's Distance, case 14 has little influence on all the fitted values, since $0.1<P(F(p, n-p) \leq Cook's Distance)<0.5$.
+
+**(f)** Calculate the average absolute percent difference in the fitted values with and without case 14. What does this measure indicate about the influence of case 14? (10pts)
+
+```{r}
+new_df = brand_data[-c(14),]
+new_lm_brand = lm(Y~., data=new_df)
+newer_result = mean(abs((new_lm_brand$fitted.values-lm_brand$fitted.values)/lm_brand$fitted.values))
+newer_new_result = (100*newer_result)/nrow(brand_data)
+print(newer_new_result)
+```
+
+*Interpretation:*
+
+We see that the measure indicated that case 14 has a big influence on the fitted regression function in the range of X observations directly.
+
+**(g)** Calculate Cook's distance D; for each case and prepare an index plot. Are any cases influential according to this measure? (5pts)
+
+```{r}
+influence_results$infmat[,"cook.d"]
+```
+
+
+```{r}
+influenceIndexPlot(lm_brand, vars=c("Cook"))
+```
+
+*Interpretation:*
+
+Cases 14 (Cook's Distance Value: 0.3634123447) and 15 (Cook's Distance Value: 0.2106609008) seem to be more influential compared to the others.
+
+**(h)** Find the two variance inflation factors. Why are they both equal to 1? (5pts)
+
+```{r}
+vif(lm_brand)
+```
+
+*Interpretation:*
+
+$(VIF)_k=(1-R_k^2)^{-1}$
+
+Thus, all VIFs = 1 implies that there is no linear association between either Xs.
+
+**Question 2** Refer to the Lung pressure Data and Homework 7. The subset regression model containing first-order terms for X1 and X2 and the cross-product term X1X2 is to be evaluated in detail. (35 pts)
+
+**(a)** Obtain the residuals and plot them separately against Y and each of the three predictor variables. On the basis of these plots. should any further modification of the regression model be attempted? (5pts)
+
+```{r}
+lung_data = read.csv("Lung Pressure.csv")
+lung_data["X1X2"] = lung_data$X1*lung_data$X2
+lm_lung = lm(Y~X1+X2+X1X2, data=lung_data)
+summary(lm_lung)
+```
+
+
+```{r}
+vars = c("Y", "X1", "X2", "X1X2")
+ei = lm_lung$residuals
+for(v in vars) {
+  plot(lung_data[[v]], ei, xlab=v)
+}
+  
+```
+
+*Interpretation:*
+
+We see that the plots dont have much pattern. However, we do see some outliers for X1 and the plot for the interaction term X1X2 seems to have non-constant error. 
+
+**(b)** Prepare a normal probability plot of the residuals. Also obtain the coefficient of correlation between the ordered residuals and their expected values under normality. Does the normality assumption appear to be reasonable here? (5pts)
+
+```{r}
+build_residual_qq <- function(lm, df, rse){
+  ei = lm$residuals
+  fitted_values = lm$fitted.values
+  
+  par(mfrow=c(1,1))
+  plot(fitted_values, ei, xlab="Fitted Values", ylab="Residuals")
+  title(main="Fitted Values vs. Residuals")
+  
+  
+  ri = rank(ei)
+  n = nrow(df)
+  zr = (ri-0.375)/(n+0.25)
+  
+  #residual standard error from summary(lm) above
+  zr1 = rse*qnorm(zr)
+  
+  print(cor.test(zr1, ei))
+  
+  plot(zr1, ei, xlab="Expected Value under Normality",ylab="Residuals")
+  title(main="Normal Probability Plot")
+    
+}
+
+build_residual_qq(lm=lm_lung, df=lung_data, rse=10.58)
+```
+
+
+```{r}
+plot(lm_lung)
+```
+
+*Interpretation:*
+
+We can see that the plot is not linear and the residuals do not conform with the assumptions of normality.
+
+**(c)** Obtain the variance inflation factors. Are there any indications that serious multicollinearity problems are present? Explain. (5pts)
+
+```{r}
+vif(lm_lung)
+```
+
+*Interpretation:*
+
+Since the variance inflation factors for all the coefficients in the model are $>1$, we can say that there is serious multi-collinearity present. 
+
+**(d)** Obtain the studentized deleted residuals and identify outlying Y observations. Use the Bonferroni outlier test procedure with α= .05. State the decision rule and conclusion. (5pts)
+
+*Studentized deleted residuals:*
+
+```{r}
+student_del_resids = rstudent(lm_lung)
+plot(student_del_resids)
+```
+
+
+```{r}
+ols_plot_resid_stud_fit(lm_lung)
+```
+
+*Bonferroni Outlier Test:*
+
+Test value = $t(1-\alpha/2n; n-p-1)$
+
+$H_0:$ No outlier
+$H_1:$ Atleast one outlier
+
+```{r}
+n = nrow(lung_data)
+p = length(lm_lung$coefficients)
+alpha = 0.1
+tTest = qt(1-alpha/2*n,n-p-1)
+tTest
+```
+
+
+```{r}
+any(abs(student_del_resids)>=abs(tTest))
+```
+
+*Decision Rule:*
+
+- If $|t_i| \leq t(1-\alpha/2n; n-p-1)$, $n=i$ is not an outlier.
+- If $|t_i| > t(1-\alpha/2n; n-p-1)$, $n=i$ is an outlier.
+
+*Result:*
+
+Since atleast one $|t_i| > t(1-\alpha/2n; n-p-1)$, we conclude $H_1$. There is atleast one outlier.
+
+
+**(e)** Obtain the diagonal elell1ents of the hat matrix. Are there any outlying X observations? Discuss. (5pts)
+
+```{r}
+hii = hatvalues(lm_lung)
+index = hii>2*p/n
+index
+
+```
+
+*Interpretation:*
+
+The hat matrix measures the distance between $X_i$ and $\bar{X}$. We see that there are quite a few outlying X observations.
+
+**(f)** Cases 3, 8, and 15 are moderately far outlying with respect to their X values, and case 7 is relatively far outlying with respect to its Y value. Obtain DFFITS, DFBETAS, and Cook's distance values for these cases to assess their inf1uence. What do you conclude? (10pts)
+
+```{r}
+influence_results = influence.measures(lm_lung)
+influence_results$infmat
+```
+
+
+```{r}
+cases = c(3,7,8,15)
+
+for(c in cases) {
+  influence_results = influence.measures(lm_lung)
+  print(paste("Case #", c))
+  print(influence_results$infmat[c,])
+}
+  
+```
+
+*Interpretation:*
+
+*Case #3:* 
+
+|DFFITS|<1 implies that this case does not have significant influence on $Y_3$.
+
+|DFBETAS|<1 which implies this case does not have significant influence on the coefficients.
+
+Cook Distance: According to Cook's Distance, this case has little influence on all the fitted values, since $0.1<P(F(p, n-p) \leq Cook's Distance)<0.5$.
+
+*Case #7:*
+
+|DFFITS|>1 implies that this case does have significant influence on $Y_7$.
+
+|DFBETAS|>1 for $\beta_1$ only and remaining |DFBETAS|<1. Which implies this case only has significant influence on $\beta_1$ the coefficients.
+
+Cook Distance: According to Cook's Distance, this case has little influence on all the fitted values, since $0.1<P(F(p, n-p) \leq Cook's Distance)<0.5$.
+
+*Case #8:*
+
+|DFFITS|>1 implies that this case does have significant influence on $Y_8$.
+
+|DFBETAS|>1 for all variables. Which implies this case has significant influence on all the coefficients.
+
+Cook Distance: According to Cook's Distance, this case has major influence on all the fitted values, since $P(F(p, n-p) \leq Cook's Distance)>0.5$.
+
+*Case #15:*
+
+|DFFITS|<1 implies that this case does not have significant influence on $Y_{15}$.
+
+|DFBETAS|<1 for all variables. Which implies this case does not have significant influence on any of the coefficients.
+
+Cook Distance: According to Cook's Distance, this case has no influence on all the fitted values, since $P(F(p, n-p) \leq Cook's Distance)<0.1$.
+
+
+*Summary:*
+- Case #8 seems to be the biggest outlier compared to other cases seen above.
+- Case #7 has an impact only on $\beta_1$, which means that only $X_7$ might the outlier here.
+- Case #3 and #15 don't seem to have much influence on the model and should not be consedered as outliers.
+
+**Question 3** Refer to the Prostate Cancer data set in Appendix C.6 and Homework 7. For the best subset model developed in Homework 7, perform appropriate diagnostic checks to evaluate outliers and assess their influence. Do any serious multicollinearity problems exist here? (20pts)
+
+
+```{r}
+prostate_data = read.csv("Prostate Cancer.csv")
+prostate_data$Seminal.vesicle.invasion = as.factor(prostate_data$Seminal.vesicle.invasion)
+prostate_data$Gleason.score = as.factor(prostate_data$Gleason.score)
+summary(prostate_data)
+```
+
+
+```{r}
+set.seed(567)
+train_ind = sample(1:nrow(prostate_data), size=65)
+test_ind = setdiff(1:nrow(prostate_data), train_ind)
+train_df = prostate_data[train_ind,]
+test_df = prostate_data[test_ind,]
+```
+
+
+```{r}
+lm_prostate_best = lm(PSA.level~Cancer.volume+Capsular.penetration, data=train_df)
+summary(lm_prostate_best)
+```
+
+
+```{r}
+ei = lm_prostate_best$residuals
+fitted_values = lm_prostate_best$fitted.values
+plot(fitted_values, ei)
+```
+
+
+```{r}
+plot(lm_prostate_best)
+```
+
+```{r}
+ols_plot_resid_stud_fit(lm_prostate_best)
+```
+
+```{r}
+influenceIndexPlot(lm_prostate_best, vars=c("Cook"))
+```
+
+
+*Bonferroni Outlier Test:*
+
+Test value = $t(1-\alpha/2n; n-p-1)$
+
+```{r}
+n = nrow(train_df)
+p = length(lm_prostate_best$coefficients)
+alpha = 0.1
+tTest = qt(1-alpha/2*n,n-p-1)
+tTest
+```
+
+
+```{r}
+student_del_resids = rstudent(lm_prostate_best)
+any(student_del_resids>=tTest)
+```
+```
+
+
+```{r}
+hii = hatvalues(lm_prostate_best)
+index = hii>2*p/n
+index
+```
+
+
+```{r}
+influence_results = influence.measures(lm_prostate_best)
+influence_results$infmat
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+
+
