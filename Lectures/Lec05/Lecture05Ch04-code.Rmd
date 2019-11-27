@@ -10,8 +10,8 @@ output: pdf_document
 ```{r}
 toluca_data = read.csv("toluca_data.csv")
 fitreg = lm(workhrs~lotsize, data=toluca_data)
-confint(fitreg, level=1-0.1) # the individual 95% C.I. 
-confint(fitreg, level=1-0.1/2) # Bonferroni Joint 95% C.I.
+confint(fitreg, level=1-0.1) # the individual 90% C.I. 
+confint(fitreg, level=1-0.1/2) # Bonferroni Joint 90% C.I.
 ```
 
 **Simultaneous Estimation of C.I.**
@@ -19,7 +19,9 @@ confint(fitreg, level=1-0.1/2) # Bonferroni Joint 95% C.I.
 **Working-Hotelling**
 
 ```{r}
-W = sqrt(2*qf(0.9,2,23))
+alpha = 0.1
+df = fitreg$df
+W = sqrt(2*qf(1-alpha,2,df))
 W
 Xh = data.frame(lotsize=c(30,65,100))
 CI = predict(fitreg, Xh, se.fit=TRUE, interval="confidence", level=0.9)
@@ -32,7 +34,7 @@ cbind(CI$fit[,1]-W*CI$se.fit, CI$fit[,1]+W*CI$se.fit)
 alpha = 0.1
 Xh = data.frame(lotsize=c(30,65,100))
 pred = predict(fitreg, Xh , se.fit=TRUE, interval="confidence", level=1-alpha)
-B = rep(qt(1-alpha/(2*nrow(Xh)),n-2),nrow(Xh))
+B = rep(qt(1-alpha/(2*nrow(Xh)),fitreg$df),nrow(Xh))
 rbind(pred$fit-B* pred$se.fit, pred$fit+B* pred$se.fit)
 ```
 
@@ -62,8 +64,6 @@ pred.new
 ```
 
 
-```{r}
-```
 
 
 ```{r}
