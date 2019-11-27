@@ -1,0 +1,210 @@
+---
+title: "HW6-Solutions"
+output:
+  pdf_document: default
+number_sections: false
+---
+## Problem 1
+### 	1-	An analyst wanted to fit the regression model Yi = B0 + B1 Xi1 + B2 Xi2 + B3 Xi3 + Ei, i = 1,... ,n, by the method of least squares when it is known that B2 = 4. How can the analyst obtain the desired fit by using a multiple regression computer program? (20pts)
+
+### _Solution:_
+Full model is 
+$$Y_{i}= \beta_0 + \beta_1 X_{i1}+\beta_2 X_{i2}+\beta_3 X_{i3}$$
+The reduced model below: 
+
+$$Y_{i}= \beta_0 + \beta_1 X_{i1}+\beta_2 X_{i2}+\beta_3 X_{i3}\\
+  Y_{i}= \beta_0 + \beta_1 X_{i1}+4X_{i2}+\beta_3 X_{i3}\\
+  Y_{i}-4X_{i2}= \beta_0 + \beta_1 X_{i1}+\beta_3 X_{i3}\\
+     Y^{*}_{i}=\beta_0 + \beta_1 X_{i1}+\beta_3 X_{i3} $$
+
+## Problem 2- Refer to the Commercial Properties data and problem in Assignment 5. (25 pts)
+### a)	Obtain the analysis of variance table that decomposes the regression sum of squares into extra sums of squares associated with X4; with X1 given X4; with X2 , given X1 and X4; and with X3 , given X1, X2 and X4. (10pts)
+### b)Test whether X3 can be dropped from the regression model given that X1, X2 and X4 are retained. Use the F test statistic and level of significance .01. State the alternatives, decision rule, and conclusion. What is the P-value of the test? (5pts)
+### c)Test whether both X2 and X3 can be dropped from the regression model given that X1 and X4 are retained; use alpha =.01. State the alternatives, decision rule, and conclusion. What is the P-value of the test? (5pts)
+### d)Test whether, Beta1 = -.1 and, Beta2 =.4; Use alpha=.01. State the alternatives, full and reduced models, decision rule, and conclusion. (5pts)
+
+
+### a) 
+### _Solution:
+$$ SSR(X_{4})=67.775 $$
+$$ SSR(X_{1}|X_{4})=42.275$$ 
+$$ SSR(X_{2}|X_{4},X_{1})=27.857$$
+$$ SSR(X_{3}|X_{4},X_{1},X_{2})=0.420 $$
+$$ SSE(X_{1},X_{2},X_{3},X_{4})=98.231$$
+   
+```{r}
+library(knitr)
+Commercial.Properties <- read.csv("/cloud/project/Commercial Properties.csv")
+f1<-lm(Y~X4+X1+X2+X3,data=Commercial.Properties)
+anova(f1)
+```
+
+### b) 
+### _Solution:_  
+$$H_o:\beta_3=0\\
+  H_a:\beta_3 \neq 0\\$$
+
+Pvalue of the test is 0.5704. Accept the null, $$\beta_3$$ can be dropped from the model.
+
+See below for the Rcode
+
+```{r}
+f1r<-lm(Y~X4+X1+X2,data=Commercial.Properties)
+anova(f1r,f1)
+
+```
+
+### c)
+### _Solution:_
+$$H_o:\beta_2=\beta_3=0\\
+  H_a: Either\ \beta_2\ or\ \beta_3\ not\ equal\ to\ 0\\$$
+
+Pvalue of the test is 6.682e-05 < 0.05. Reject the null, $$both\ \beta_2\ or\ \beta_3\ can\ Not\ be\ dropped\ from\ the\ model.$$
+
+See below for the Rcode
+
+```{r}
+f1cr<-lm(Y~X4+X1,data=Commercial.Properties)
+anova(f1cr,f1)
+```
+
+
+### d) 
+### _Solution:_  
+$$H_o:\beta_1=-0.1\ ,\beta_2=0.4\\
+  H_a:Not\ both\ equalities\ in\ H_o\ hold$$
+The reduced model is
+$$Y_{i}+0.1X_{i1}-0.4X_{i2}= \beta_0 + \beta_3 X_{3}+\beta_4 X_{i4}\\
+     Y^{*}_{i}=\beta_0 + \beta_3 X_{3}+\beta_4 X_{i4} $$
+
+SSE.f=98.231
+dF.f= 76
+SSE.r=110.141
+dF.r=78
+F.test = ((110.141-98.231)/2)/(98.231/76)=4.607303
+
+Pvalue of the test is 0.0129 which is greater than alpha=0.01. Accept the null. 
+
+See below for the Rcode
+
+```{r}
+f1dr<-lm(Y+0.1*X1-0.4*X2~X3+X4,data=Commercial.Properties)
+anova(f1dr)
+anova(f1)
+F.test=((110.141-98.231)/2)/(98.231/76)
+F.test
+1-pf(F.test,2,76)
+```
+
+## Problem 3
+### 3-	Refer to Brand preference data and problem in Assignment 5 (30 pts)
+### a)	Transform the variables by means of the correlation transformation and fit the standardized regression model (10pts).
+### b)	Interpret the standardized regression coefficient (5pts).
+### c)	Transform the estimated standardized regression coefficients back to the ones for the fitted regression model in the original variables (5pts).
+### d)	Calculate R2Y1, R2Y2, R212, R2Y1|2, R2Y2|1 and R2. Explain what each coefficient measures and interpret your results. (10pts)
+
+
+### a)
+### _Solution:_ 
+Y=0.8923929X1 + 0.3945807X2
+see below for the rcode
+```{r}
+Brand.Preference <- read.csv("/cloud/project/Brand Preference.csv")
+install.packages("QuantPsyc")
+library(QuantPsyc)
+f3<-lm(Y~X1+X2,data=Brand.Preference)
+summary(f3)
+lm.beta(f3)
+
+```
+### b)
+### _Solution:_ 
+We see from the standardized regression coefficients that an increase of one standard deviation of X1
+when X2  is fixed leads to a much larger
+increase in Y than does an increase of
+one standard deviation of X2 when X1 is fixed.
+
+### c)
+### _Solution:_ See below the code
+```{r}
+s<-sqrt(var(Brand.Preference))
+sy<-s[1,1]
+sx1<-s[2,2]
+sx2<-s[3,3]
+b1=(sy/sx1)*0.8923929
+b2=(sy/sx2)*0.3945807
+b0=mean(Brand.Preference$Y)-b1*mean(Brand.Preference$X1)-b2*mean(Brand.Preference$X2)
+cbind(b0,b1,b2)
+```
+### d)
+### _Solution:_ 
+$$R^{2}_{Y1}=0.7964\\
+  R^{2}_{Y2}=0.1557\\
+  R^{2}_{12}=0\\
+  R^{2}_{Y1|2}=1566.45/1660.75=0.9432184\\
+  R^{2}_{Y2|1}=306.25/400.55=0.7645737\\
+  R^{2}=0.9521$$
+ see below for the R code
+```{r}
+f3.1<-lm(Y~X1,data=Brand.Preference)
+summary(f3.1)
+anova(f3.1)
+f3.2<-lm(Y~X2,data=Brand.Preference)
+summary(f3.2)
+anova(f3.2)
+f3.3<-lm(Y~X2+X1,data=Brand.Preference)
+anova(f3.3)
+f3.4<-lm(Y~X1+X2,data=Brand.Preference)
+anova(f3.4)
+summary(f3.4)
+cor(Brand.Preference)
+```
+
+## Problem 4
+### 4-Refer to the CDI data set. For predicting the number of active physicians (Y) in a county, it has been decided to include total population (X1) and total personal income (X2) as predictor variables. The question now is whether an additional predictor variable would be helpful in the model and, if so, which variable would be most helpful. Assume that a first-order multiple regression model is appropriate. (25 pts)
+### a)	For each of the following variables, calculate the coefficient of partial determination given that X1 and X2 are included in the model: land area (X3), percent of population 65 or older (X4), number of hospital beds (X5), and total serious crimes (X6). (15pts)
+### b)	On the basis of the results in part (a), which of the four additional predictor variables is best? Is the extra sum of squares associated with this variable larger than those for the other three variables? (5pts)
+### c)	Using the F* test statistic, test whether or not the variable determined to be best in part (b) is helpful in the regression model when X1 and X2 are included in the model; use alpha=.01. State the alternatives, decision rule, and conclusion. Would the F* test statistics for the other three potential predictor variables be as large as the one here?  (5pts)
+
+### a)
+### _Solution:_ 
+$$R^{2}_{Y3|12}=4063370/140967081=0.02882496 $$
+$$ R^{2}_{Y4|12}=541647/140967081=0.03842365 $$
+$$ R^{2}_{Y5|12}=78070132/140967081=0.5538182 $$
+$$ R^{2}_{Y6|12}=1032359/140967081=0.007323405 $$
+  see below for the Rcode
+```{r}
+CDI <- read.csv("/cloud/project/CDI.csv")
+Y=CDI$Number.of.active.physicians
+X1=CDI$Total.population
+X2=CDI$Total.personal.income
+X3=CDI$Land.area
+X4=CDI$Percent.of.population.65.or.older
+X5=CDI$Number.of.hospital.beds
+X6=CDI$Total.serious.crimes
+f4.12<-lm(Y~X1+X2)
+anova(f4.12)
+f4.3<-lm(Y~X1+X2+X3)
+anova(f4.3)
+f4.4<-lm(Y~X1+X2+X4)
+anova(f4.4)
+f4.5<-lm(Y~X1+X2+X5)
+anova(f4.5)
+f4.6<-lm(Y~X1+X2+X6)
+anova(f4.6)
+```
+### b)
+### _Solution:_  X5 is th best variable as it has the highest coefficient of partial determination.
+
+### c)
+### _Solution:_ 
+$$H_o:\beta_5=0\\
+  H_a:\beta_5 \neq 0\\$$
+
+Pvalue of the test is 2.2e-16. Reject the null, $$\beta_5$$ is significant and it should be added to the model.
+
+See below for the Rcode 
+```{r}
+f4.125<-lm(Y~X1+X2+X5)
+anova(f4.12,f4.125)
+```

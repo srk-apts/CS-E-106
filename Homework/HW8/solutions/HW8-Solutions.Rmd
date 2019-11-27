@@ -1,0 +1,185 @@
+---
+title: "HW8-Solutions"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+## Problem 1
+### Refer to Brand preference data, build a model with all independent variables (45 pts)
+###a)Obtain the studentized deleted residuals and identify any outlying Y observations. Use the Bonferroni outlier test procedure with α = .10. State the decision rule and conclusion. (5pts)
+###b)Obtain the diagonal elements of the hat matrix, and provide an explanation for the pattern in these elements. (5pts)
+###c)Are any of the observations outlying with regard to their X values according? (5pts)
+###d)Management wishes to estimate the mean degree of brand liking for moisture content X1 = 10 and sweetness X2 = 3. Construct a scatter plot of X2 against X1 and determine visually whether this prediction involves an extrapolation beyond the range of the data. Also, use (10.29) to determine whether an extrapolation is involved. Do your conclusions from the two methods agree? (5pts)
+###e)The largest absolute studentized deleted residual is for case 14. Obtain the DFFlTS, DFBETAS, and Cook's distance values for this case to assess the influence of this case. What do you conclude? (5pts)
+###f)Calculate the average absolute percent difference in the fitted values with and without case 14. What does this measure indicate about the influence of case 14? (10pts)
+###g)Calculate Cook's distance D; for each case and prepare an index plot. Are any cases influential according to this measure? (5pts)
+###h)Find the two variance inflation factors. Why are they both equal to 1? (5pts)
+
+### a) 
+### _Solution: No outliers based on the bonferoni test.
+```{r}
+library(knitr)
+Brand.Preference <- read.csv("/cloud/project/Brand Preference.csv")
+hw8.pr1<-lm(Y~X1+X2,data=Brand.Preference)
+library(olsrr)
+drst<-rstudent(hw8.pr1) 
+tb<-qt(1-0.1/(2*16),16-3-1)
+sum(abs(drst)>abs(tb))
+
+```
+### b)
+### _Solution:_ Max hat value is 0.2375 and the min is 0.1375. The avarega is 0.19. The compact range, no indication of outliers.
+
+```{r}
+hii <- hatvalues(hw8.pr1)
+hii
+summary(hii)
+
+```
+
+### c) 
+### _Solution:_   No outliers in direction of X, hat values are less than 2*p/n. 
+
+```{r}
+sum(hii>(2*3/16))
+```
+### d) 
+### _Solution:_ Tha hat value for the prediction is 0.175 which is within the hat values calculated pat c(max= 0.2375 and min=0.1375). No exterpolation is required.  
+
+```{r}
+plot(Brand.Preference$X1,Brand.Preference$X2)
+X<-model.matrix(hw8.pr1)
+XXInv<-solve(t(X)%*%X)
+Xhnew<-matrix(c(1,10,3),nrow=1,ncol=3)
+Hatnew<-Xhnew%*%XXInv%*%t(Xhnew)
+Hatnew
+```
+### e) 
+### _Solution:_   Case 14 has the max DFIITS, DFBETAS, and Cooks distance. Cooks distance is 2000 larger than the smallest cooks distance. Indicating influential point.
+
+```{r}
+cd<-influence.measures(hw8.pr1)
+cd
+cd$infmat[14,6]/cd$infmat[,6]
+```
+### f) 
+### _Solution:_ Predicted values are increased by %0.62. 
+
+```{r}
+p1<-hw8.pr1$fitted.values[-c(14)]
+t1<-lm(Y~X1+X2,data=Brand.Preference[-c(14),])
+p2<-t1$fitted.values
+cbind(Brand.Preference[-c(14),1],p1,p2)
+mean((abs(p1-p2)/p2)*100)
+```
+### g) 
+### _Solution:_   Case 14 is an influential point based on the plot. 
+
+```{r}
+ols_plot_cooksd_chart(hw8.pr1)
+```
+### h) 
+### _Solution:_ X1 and X2 are independent, therefore VIF=1. 
+
+```{r}
+library(faraway)
+vif(hw8.pr1)
+ cor(Brand.Preference)
+```
+
+### Problem 2
+##	Refer to the Lung pressure Data and Homework 7. The subset regression model containing first-order terms for X1 and X2 and the cross-product term X1X2 is to be evaluated in detail. (35 pts)
+##a)	Obtain the residuals and plot them separately against Y and each of the three predictor variables. On the basis of these plots. should any further modification of the regression model be attempted? (5pts)
+##b)	Prepare a normal probability plot of the residuals. Also obtain the coefficient of correlation between the ordered residuals and their expected values under normality. Does the normality assumption appear to be reasonable here? (5pts)
+##c)	Obtain the variance inflation factors. Are there any indications that serious multicollinearity problems are present? Explain. (5pts)
+##d)	Obtain the studentized deleted residuals and identify outlying Y observations. Use the Bonferroni outlier test procedure with α= .05. State the decision rule and conclusion. (5pts)
+##e)	Obtain the diagonal elell1ents of the hat matrix. Are there any outlying X observations? Discuss. (5pts)
+##f)	Cases 3, 8, and 15 are moderately far outlying with respect to their X values, and case 7 is relatively far outlying with respect to its Y value. Obtain DFFITS, DFBETAS, and Cook's distance values for these cases to assess their inf1uence. What do you conclude? (10pts)
+
+
+### a) 
+### _Solution:_ No pattern with residuals and X3, indicating that X3 would not increase the power. There are couple of potential outliers in the data. 
+```{r}
+Lung.Pressure <- read.csv("/cloud/project/Lung Pressure.csv")
+hw8.pr2<-lm(Y~X1+X2+I(X1*X2),data=Lung.Pressure)
+summary(hw8.pr2)
+par(mfrow=c(2,2))
+plot(Lung.Pressure$Y,hw8.pr2$residuals,ylab="Residuals",xlab="Y")
+plot(Lung.Pressure$X1,hw8.pr2$residuals,ylab="Residuals",xlab="X1")
+plot(Lung.Pressure$X2,hw8.pr2$residuals,ylab="Residuals",xlab="X2")
+plot(Lung.Pressure$X3,hw8.pr2$residuals,ylab="Residuals",xlab="X3")
+```
+### b) 
+### _Solution:_ the correlation is 96%, and graph indicates that the assumption is reasoable. 
+
+```{r}
+stdei<- rstandard(hw8.pr2)
+qqnorm(stdei,ylab="Standardized Residuals",xlab="Normal Scores", main="QQ Plot")
+qqline(stdei,col = "steelblue", lwd = 2)
+a2<-anova(hw8.pr2)
+mse<-a2$`Mean Sq`[4]
+ei<-hw8.pr2$residuals
+ei.rank<-rank(ei)
+z1<-(ei.rank-0.375)/(19+0.375)
+exp.rank<-sqrt(mse)*qnorm(z1)
+cor(exp.rank,ei)
+```
+
+### c) 
+### _Solution:_ Multicollinearity present VIF>10 for X2 and the interaction term. 
+
+```{r}
+library(faraway)
+vif(hw8.pr2)
+
+```
+### d) 
+### _Solution:_ No outliers based on the bonforeni test. the largest deleted residual is observation 7, which larger than 3. 
+
+```{r}
+drst<-rstudent(hw8.pr2) 
+tb<-qt(1-0.05/(2*19),19-4-1)
+sum(abs(drst)>abs(tb))
+```
+
+### e) 
+### _Solution:_ Indicating 3 outliers in X. Observations 3,8 and 15.
+
+```{r}
+hii <- hatvalues(hw8.pr2)
+hii
+summary(hii)
+sum(hii>(2*4/19))
+(hii>(2*4/19))
+```
+### f) 
+### _Solution:_ Case 8 has the largest cooks distance, it is an influential point.Cases 1 and 7 are outliers. 
+
+```{r}
+cd2<-influence.measures(hw8.pr2)
+cd2
+cd3<-cd2$infmat
+cd3[c(3,7,8,15),]
+ols_plot_cooksd_chart(hw8.pr2)
+ols_plot_dfbetas(hw8.pr2)
+ols_plot_dffits(hw8.pr2)
+ols_plot_resid_stud_fit(hw8.pr2)
+```
+
+## Problem 3
+### Refer to the Prostate Cancer data set in Appendix C.6 and Homework 7. For the best subset model developed in Homework 7, perform appropriate diagnostic checks to evaluate outliers and assess their influence. Do any serious multicollinearity problems exist here? (20pts)
+
+### _Solution:_ The model is signficant with 41% Rsquare. There outlier observations 47,95,96 and 97. The observation 97 is also an influential point.The regresion model assumptions are not hold for normality and nonconstant variances based on the graphs.
+
+```{r}
+Prostate.Cancer <- read.csv("/cloud/project/Prostate Cancer.csv")
+hw8.pr3<-lm(PSA.level~Cancer.volume+Capsular.penetration,data=Prostate.Cancer)
+summary(hw8.pr3)
+influence.measures(hw8.pr3)
+par(mfrow=c(2,2))
+plot(hw8.pr3)
+vif(hw8.pr3)
+ols_plot_cooksd_chart(hw8.pr3)
+ols_plot_resid_stud_fit(hw8.pr3)
+```

@@ -44,24 +44,22 @@ for (lib in libs)
 
 
 
-**Question 1:**
-
-1-	An analyst wanted to fit the regression model $Y_i = \beta_0 +\beta_1*X_{i1}+\beta_2*X_{i2}+\beta_1*X_{i3}+\epsilon_i$,
+**Question 1:** An analyst wanted to fit the regression model $Y_i = \beta_0 +\beta_1*X_{i1}+\beta_2*X_{i2}+\beta_1*X_{i3}+\epsilon_i$,
 i = 1, ... , n, by the method of least squares when it is known that $\beta_2=4$. How can the analyst obtain the desired fit by using a multiple regression computer program?
 
-**Solution 1:**
-
+**Solution:**
 
 *Step 1:* Create a new variable $Y^* = Y_i-\beta_2*X_{i2} = Y_i-4*X_{i2}$
-*Step 2:* Using $Y^*$ as the new response variable, run the regression model: 
-$Y^* = \beta_0 +\beta_1*X_{i1}+\beta_1*X_{i3}+\epsilon_i$ using least squares (Using R functions: lm(YStar~X1+X3, data)).
+*Step 2:* Using $Y^*$ as the new response variable, run the regression model: $Y^* = \beta_0 +\beta_1*X_{i1}+\beta_3*X_{i3}+\epsilon_i$ with least squares method. Using R functions: `model = lm(YStar~X1+X3, data)`.
 *Step 3:* Use the obtained coefficients as $\beta_1$ and $\beta_3$, assuming $\beta_2=4$
 
 
 
-**Solution 2:**
+**Question 2:** Refer to the Commercial Properties data and problem in Assignment 5. (25 pts)
 
 **(a)** Obtain the analysis of variance table that decomposes the regression sum of squares into extra sums of squares associated with X4; with X1 given X4; with X2 , given X1 and X4; and with X3 , given X1, X2 and X4. (10pts)
+
+**Solution:**
 
 ```{r}
 properties_data = read.csv("Commercial Properties.csv")
@@ -72,7 +70,6 @@ summary(lm_prop)
 
 ```{r}
 anova_F = anova(lm_prop)
-anova_F
 
 anovaTable = data.frame(anova_F)
 totals = c(round(sum(anovaTable[,1])), round(sum(anovaTable[,2])), "", "", "")
@@ -87,9 +84,11 @@ kable(anovaTable)
 ```
 
 
-**(b)**	
+**(b)**	Test whether X3 can be dropped from the regression model given that X1, X2 and X4 are retained. Use the F test statistic and level of significance .01. State the alternatives, decision rule, and conclusion. What is the P-value of the test? (5pts)
 
-From the above ANOVA table, we can see that the P-value for SSR(X3|X4X1X2) is very high, which means that the extra regression sums of squares due to X3 is very low. Thus, X3 can be dropped. F-test below.
+**Solution:**
+
+From the above ANOVA table, we can see that the P-value for SSR(X3|X4X1X2) is very high, which means that the extra regression sums of squares due to X3 is very low. Thus, X3 can be dropped. *See F-test below.*
 
 
 ```{r}
@@ -132,7 +131,7 @@ Since our test statistic, $F^* =$ `r FStar`, and `r FStar` $\leq$ `r FTest`, we 
 
 **(c)**	Test whether both X2 and X3 can be dropped from the regression model given that X1 and X4 are retained; use α=.01. State the alternatives, decision rule, and conclusion. What is the P-value of the test? (5pts)
 
-
+**Solution:**
 
 ```{r}
 ssr = sum(as.numeric(anovaTable[c("SSR(X3|(X4X1X2))","SSR(X2|(X4X1))"),"Sum Sq."]))
@@ -173,12 +172,13 @@ If $F^* >$ `r FTest`, conclude $H_a$
 Since our test statistic, $F^* =$ `r FStar`, and `r FStar` $>$ `r FTest`, we conclude $H_1$. Not both $\beta$s equal to zero.
 
 
-**(d)**
+**(d)** Test whether, β1 = -.1 and, β2 =.4; Use α=.01. State the alternatives, full and reduced models, decision rule, and conclusion. (5pts)
 
+**Solution:**
 
 ```{r}
-Y_new = properties_data$Y+0.1*properties_data$X1-0.4*properties_data$X2
-lm_prop_R = lm(Y_new~properties_data$X3+properties_data$X4)
+Y = properties_data$Y+0.1*properties_data$X1-0.4*properties_data$X2
+lm_prop_R = lm(Y~properties_data$X3+properties_data$X4)
 summary(lm_prop_R)
 ```
 
@@ -186,6 +186,10 @@ summary(lm_prop_R)
 ```{r}
 anova_R = anova(lm_prop_R)
 anova_R
+```
+
+```{r}
+anova(lm_prop_R, lm_prop)
 ```
 
 
@@ -206,9 +210,27 @@ FTest = qf(1-alpha, (df_R-df_F), df_F)
 print(FTest)
 ```
 
-**Solution 3:**
+*Hypotheses:*
 
-**(a)**
+$H_0: \beta_1 = -0.1$ & $\beta_2 = 0.4$ 
+
+$H_a:$ Not both $\beta_1 = -0.1$ & $\beta_2 = 0.4$ hold
+
+*Decision Rules:*
+
+If $F^* \leq$ `r FTest`, conclude $H_0$
+
+If $F^* >$ `r FTest`, conclude $H_a$
+
+*Conclusion:*
+
+Since our test statistic, $F^* =$ `r FStar`, and `r FStar` $\approx$ `r FTest`, at the boundary of decision rule. We may wish to conduct further analyses whether $\beta_1 = -0.1$ & $\beta_2 = 0.4$ can hold true at the same time.
+
+**Question 3:** Refer to Brand preference data and problem in Assignment 5 (30 pts)
+
+**(a)** Transform the variables by means of the correlation transformation and fit the standardized regression model (10pts).
+
+**Solution:**
 
 ```{r}
 standardize_corr = function(df){
@@ -224,9 +246,11 @@ standardize_corr = function(df){
 }
 ```
 
+
 ```{r}
 brand_data = read.csv("Brand Preference.csv")
 brand_data_new = standardize_corr(brand_data)
+#spot check
 summary(brand_data_new)
 ```
 
@@ -235,7 +259,7 @@ lm_brand_new = lm(Y~., data=brand_data_new)
 summary(lm_brand_new)
 ```
 
-$\beta_0$ is almost 0. Thus,
+$\beta_0$ is pretty much 0. Thus,
 
 Regression Function: $Y = 0.892*X_1 + 0.3946*X_2$
 
@@ -244,28 +268,53 @@ lm_brand = lm(Y~., data=brand_data)
 ```
 
 
+*Double-check Using QuantPsyc library:*
 ```{r}
 library(QuantPsyc)
 lm.beta(lm_brand)
 ```
 
-**(b)**
+**(b)** Interpret the standardized regression coefficient (5pts).
+
+**Solution:**
 
 *Interpretation:*
 
 - We can see that the $\beta_0$ is almost equal to 0, which is expected since Y is now centered at 0 (based on definition and summary of the new data in part (a)).
-- 
+- We also see that $\beta_1$ and $\beta_2$ are less than one and their standard deviations are also a lot less than the model without standardization.
+- However, the $R^2$ is the same which means that the is equally powerful in terms of predictive capability.
 
-**(c)**
 
+**(c)** Transform the estimated standardized regression coefficients back to the ones for the fitted regression model in the original variables (5pts).
+
+**Solution:**
+
+
+```{r}
+df = brand_data
+
+b1_star = as.numeric(lm.beta(lm_brand)["X1"])
+b1 = (sqrt(var(df[, "Y"]))/sqrt(var(df[, "X1"])))*b1_star
+print(b1)
+
+b2_star = as.numeric(lm.beta(lm_brand)["X2"])
+b2 = (sqrt(var(df[, "Y"]))/sqrt(var(df[, "X2"])))*b2_star
+print(b2)
+
+b0 = mean(df$Y)-b1*mean(df$X1)-b2*mean(df$X2)
+print(b0)
+
+```
+
+*Double-check*
 
 ```{r}
 lm_brand$coefficients
 ```
 
+**(d)** Calculate R2Y1, R2Y2, R212, R2Y1|2, R2Y2|1 and R2. Explain what each coefficient measures and interpret your results. (10pts)
 
-**(d)**
-
+**Solution:**
 
 ```{r}
 df = brand_data
@@ -274,13 +323,13 @@ R2_Y1 = anova(lm(Y~X1, data=df))[1,2]/sum(anova(lm(Y~X1, data=df))[1:2,2])
 
 R2_Y2 = anova(lm(Y~X2, data=df))[1,2]/sum(anova(lm(Y~X2, data=df))[1:2,2])
 
-R2_12 = sum(anova(lm(Y~X1+X2, data=df))[1:2,2])/sum(anova(lm(Y~X1+X2, data=df))[1:3,2])
+R2_12 = cor(df$X1, df$X2)^2
 
 R2_Y1_2 = anova(lm(Y~X2+X1, data=df))[2,2]/sum(anova(lm(Y~X2+X1, data=df))[2:3,2])
 
 R2_Y2_1 = anova(lm(Y~X1+X2, data=df))[2,2]/sum(anova(lm(Y~X1+X2, data=df))[2:3,2])
 
-R2 = R2_12
+R2 = sum(anova(lm(Y~X1+X2, data=df))[1:2,2])/sum(anova(lm(Y~X1+X2, data=df))[1:3,2])
 
 ```
 
@@ -296,9 +345,11 @@ $R_{Y2|1}^2 =$ `r R2_Y2_1`
 
 $R^2 =$ `r R2`
 
-**Solution 4:**
+**Question 4:** Refer to the CDI data set. For predicting the number of active physicians (Y) in a county, it has been decided to include total population (X1) and total personal income (X2) as predictor variables. The question now is whether an additional predictor variable would be helpful in the model and, if so, which variable would be most helpful. Assume that a first-order multiple regression model is appropriate. (25 pts)
 
-**(a)**
+**(a)** For each of the following variables, calculate the coefficient of partial determination given that X1 and X2 are included in the model: land area (X3), percent of population 65 or older (X4), number of hospital beds (X5), and total serious crimes (X6). (15pts)
+
+**Solution:**
 
 ```{r}
 inc_cols = c("Number.of.active.physicians", "Total.population", "Total.personal.income",
@@ -356,17 +407,27 @@ $R_{5|12}^2 =$ `r r2_X5`
 $R_{6|12}^2 =$ `r r2_X6`
 
 
-**(b)**
+**(b)** On the basis of the results in part (a), which of the four additional predictor variables is best? Is the extra sum of squares associated with this variable larger than those for the other three variables? (5pts)
+
+**Solution:**
 
 $X_5$ is the best predictor we can add to the model as it has the maximum coefficient of partial determination. Yes, the extra sum of squares associated with this variable is larger compared to other variables also, which makes sense since SST will remain constant.
 
 
-**(c)**
+**(c)** Using the F* test statistic, test whether or not the variable determined to be best in part (b) is helpful in the regression model when X1 and X2 are included in the model; use α=.01. State the alternatives, decision rule, and conclusion. Would the F* test statistics for the other three potential predictor variables be as large as the one here?  (5pts)
+
+**Solution:**
 
 ```{r}
 anova_x5 = anova(lm(Y~X1+X2+X5, data=cdi_data))
 anova_x5
 ```
+
+
+```{r}
+anova(lm_cdi, lm(Y~X1+X2+X5, data=cdi_data))
+```
+
 
 
 ```{r}
@@ -404,33 +465,5 @@ If $F^* >$ `r FTest`, conclude $H_a$
 
 *Conclusion:*
 
-Since our test statistic, $F^* =$ `r FStar`, and `r FStar` $\leq$ `r FTest`, we conclude $H_0$. Thus, X3 can be dropped from the model.
-
-
-
-```{r}
-```
-
-
-```{r}
-```
-
-
-```{r}
-```
-
-
-```{r}
-```
-
-
-```{r}
-```
-
-
-```{r}
-```
-
-
-
+Since our test statistic, $F^* =$ `r FStar`, and `r FStar` $>$ `r FTest`, we conclude $H_a$. Thus, X5 adds valuable information to the model and is helpful in predicting the response, given X1 and X2 are already present.
 
