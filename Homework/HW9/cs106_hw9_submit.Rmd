@@ -1,0 +1,525 @@
+---
+title: '**CS-E-106: Data Modeling**'
+subtitle: '**Assignment 9**'
+date: '**Due Date:** 12/09/2019'
+author:
+  - '**Instructor: Hakan Gogtas**'
+  - '**Submitted by:** Saurabh Kulkarni'
+output: 
+  pdf_document: 
+    latex_engine: xelatex
+---
+
+
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(tidy.opts=list(width.cutoff=80), 
+                      fig.width=10, fig.height=5)
+
+loadLib = function(libName)
+{
+    if(require(libName, character.only=TRUE))
+    {
+        cat(libName, "loaded properly\n")
+    } else {
+        cat("Installing", libName, "\n")
+        install.packages(libName)
+        if(require(libName, character.only=TRUE))
+        {
+            cat(libName, "loaded properly\n")
+        } else {
+            stop(c(libName, "not properly installed\n"))
+        }
+    }
+}
+
+libs = c("ggplot2", "knitr", "MASS", "ggcorrplot", "GGally", "alr3", 
+         "lattice", "dplyr", "ALSM", "leaps", "olsrr", "qpcR", "rpart",
+         "glmnet", "genridge")
+
+for (lib in libs)
+{
+    loadLib(lib)
+}
+
+```
+
+
+
+**Question 1** Refer to Employee salaries data. A group of high-technology companies agreed to share employee salary information in an effort to establish salary ranges for technical positions in research and development. Data obtained for each employee included current salary (Y), a coded variable indicating highest academic degree obtained (1 = bachelor's degree, 2 = master's degree; 3 = doctoral degree), years of experience since last degree (X3), and the number of persons currently supervised (X4).  (40 pts)
+
+**(a)** Create two indicator variables for highest degree attained: (5pts)
+
+**Solution**
+
+```{r}
+employee_data = read.csv("Employee  Salaries.csv")
+employee_data$Degree = as.factor(employee_data$Degree)
+employee_data["X1"] = as.factor(ifelse(employee_data$Degree==2, 1, 0))
+employee_data["X2"] = as.factor(ifelse(employee_data$Degree==3, 1, 0))
+summary(employee_data)
+```
+
+**(b)** Regress Y on X1, X2, X3 and X4, using a first-order model and ordinary least squares, obtain the residuals. and plot them against Y ̂. What does the residual plot suggest? (5pts)
+
+**Solution**
+
+```{r}
+lm_employee = lm(Y~X1+X2+X3+X4, data=employee_data)
+summary(lm_employee)
+```
+
+
+```{r}
+ei = lm_employee$residuals
+fitted_values = lm_employee$fitted.values
+plot(fitted_values, ei)
+```
+
+*Interpretation:*
+
+Residual plot shows a megaphone shape which impies non-constant variance. Also, it means that $e_i$ regresses on $\hat{Y}$. 
+
+**(c)** Divide the cases into two groups, placing the 33 cases with the smallest fitted values (Y_i ) ̂ into group 1 and the other 32 cases into group 2. Conduct the Brown-Forsythe test for constancy of the error variance, using α = .01. State the decision rule and conclusion? (5 pts)
+
+
+*Brown-Forsythe Test*
+
+Null Hypothesis: $H_{0}$: Error variance is constant
+Alternate Hypothesis: $H_{1}$: Error variance is not constant
+
+```{r}
+ei = lm_employee$residuals
+yHat = lm_employee$fitted.values
+df = data.frame(cbind(employee_data,ei, yHat))
+df = df[order(yHat),]
+
+```
+
+
+```{r}
+df1 = df[1:33,]
+df2 = df[34:nrow(df),]
+
+med1 = median(df1[["ei"]])
+med2 = median(df2[["ei"]])
+
+#n1
+n1 = nrow(df1)
+print(n1)
+
+#n2
+n2 = nrow(df2)
+print(n2)
+
+d1 = abs(df1[["ei"]]-med1)
+d2 = abs(df2[["ei"]]-med2)
+
+#calculate means for our answer 
+mean_d1 = mean(d1)
+print(mean_d1)
+mean_d2 = mean(d2)
+print(mean_d2)
+
+s2 = (var(d1)*(n1-1)+var(d2)*(n2-1))/(n1+n2-2)
+print(s2)
+
+#calculate s
+s = sqrt(s2)
+print(s)
+
+#testStastic = (mean.d1 - mean.d2) / (s * sqrt((1/n1)+1/n2)
+testStastic = (mean_d1-mean_d2)/(s*sqrt((1/n1)+(1/n2)))  
+print(testStastic)
+
+t = qt(1-0.01, lm_employee$df.residual) 
+print(t)
+
+```
+
+
+*Decision Rule:*
+
+- If $|testStatistic| \leq t(1-\alpha/2,n-2)$, conclude $H_{0}$: constant error variance
+
+- If $|testStatistic| > t(1-\alpha/2,n-2)$, conclude $H_{1}$: non-constant error variance 
+
+
+*Result:*
+
+Since $|-4.659428| > 2.390119$ i.e. $|testStatistic| > t(1-\alpha/2,n-2)$, we conclude $H_{1}$. The error variance is not constant and thus varies with X.
+
+
+**(d)** 
+
+
+```{r}
+ei_abs = abs(ei)
+plot(employee_data$X3, ei_abs)
+plot(employee_data$X4, ei_abs)
+
+```
+
+*Interpretation:*
+
+We can see a megaphone shape indicating non-constant variance in the error term.
+
+
+**(e)** Estimate the. standard deviation function by regressing the absolute residuals against X3 and X4 in first-order form, and then calculate the estimated weight for each case using equation 11.16a on the book. (5pts)
+
+
+
+```{r}
+lm_ei_1e = lm(ei_abs~employee_data$X3+employee_data$X4)
+summary(lm_ei_1e)
+```
+
+
+```{r}
+si = lm_ei_1e$fitted.values
+wi = 1/(si^2)
+```
+
+
+**(f)** Using the estimated weights, obtain the weighted least squares fit of the regression model. Are the weighted least squares estimates of the regression coefficients similar to the ones obtained with ordinary least squares in part (b)? (5 pts)
+
+```{r}
+lm_1f = lm(Y~X3+X4, weights=wi, data=employee_data)
+summary(lm_1f)
+```
+
+*Interpretation:*
+
+The weighted least squares estimates for the coefficients $\beta_3$ and $\beta_4$ appear very close.
+
+**(g)** Compare the estimated standard deviations of the weighted least squares coefficient estimates in part (f) with those for the ordinary least squares estimates in pan (b). What do you find? (5 pts)
+
+```{r}
+confint(lm_employee)
+confint(lm_1f)
+```
+
+*Interpretation:*
+
+$\beta_3$ and $\beta_4$ seem to have overlapping intervals
+
+**(h)** Iterate the steps in parts (e) and (f) one more time. Is there a substantial change in the estimated regression coefficients? If so, what should you do? (10 pts)
+
+
+```{r}
+ei_abs2 = abs(lm_1f$residuals)
+lm_ei_1h = lm(ei_abs2~employee_data$X3+employee_data$X4)
+summary(lm_ei_1h)
+```
+
+
+```{r}
+si = lm_ei_1h$fitted.values
+wi = 1/(si^2)
+lm_1h = lm(Y~X3+X4, weights=wi, data=employee_data)
+summary(lm_1h)
+```
+
+*Interpretation:*
+
+There doesn't seem to be much difference in the coefficients in the models `lm_1f` (part f model) and `lm_1h` (part h model). However, there seems to be a significant improvement in the $R^2$. 
+
+So we should probably do one more iteration and see if it gives us an improvement, or else stop and use the weights identified part (h).
+
+**Question 2** Refer to the Weight and height. The weights and heights of twenty male 'Students in a freshman class are recorded in order to see how well weight (Y, in pounds) can be predicted from height (X, in inches). Assume that first-order regression is appropriate. (30 pts)
+
+**(a)** Fit a simple linear regression model using ordinary least squares, and plot the data together with the fitted regression function. Also, obtain an Index plot of Cook s distance. What do these plots suggests? (5pts)
+
+```{r}
+wtht_data = read.csv("Weight and Height.csv")
+summary(wtht_data)
+```
+
+
+```{r}
+lm_wtht = lm(Y~X, data=wtht_data)
+summary(lm_wtht)
+```
+
+
+```{r}
+par(mfrow=c(1,1))
+plot(wtht_data$X, wtht_data$Y)
+regLine(lm_wtht)
+```
+
+
+```{r}
+cooks.distance(lm_wtht)
+```
+
+
+```{r}
+influenceIndexPlot(lm_wtht, vars=c("Cook"))
+```
+
+*Interpretation:*
+
+*Fitted Regression Function:* The plot suggests some non-linearity along with a few outliers as seen in the plot.
+
+*Cook's Distance:* The plot suggests observation #2 is a clear outlier and #3, #6 need further investigation.
+
+
+**(b)** Obtain the scaled residuals in equation 11.47 and use the Huber weight function (equation 11.44) to obtain case weights for a first iteration of IRLS robust regression. Which cases receive the smallest Huber weights? Why? (10 pts)
+
+
+```{r}
+ei = lm_wtht$residuals
+MAD = (1/0.6745)*(median(abs(ei-median(ei))))
+ui = ei/MAD
+wi = ifelse(abs(ui)>1.345, (1.345/abs(ui)), 1)
+wi
+```
+
+*Interpretation:*
+
+Observations 2 and 3 receive the smallest huber weights, because they are farthest away from the median residual value, suggesting an outlier.
+
+**(c)** Using the weights calculated in part (b), obtain the weighed least squares estimates of the regression coefficients. How do these estimates compare to those found in part (a) using ordinary least squares? (5pts)
+
+```{r}
+lm_2c = lm(Y~X, weights=wi, data=wtht_data)
+summary(lm_2c)
+```
+
+*Interpretation:*
+
+$\beta_1$ from both the models seem to be close to each other. But there seems to be a good difference in the intercept.
+
+
+**(d)** Continue the IRLS procedure for two more iterations. Which cases receive the smallest weights in the final iteration? How do the final IRLS robust regression estimates compare to the ordinary least squares estimates obtained in part (a)? (10 pts)
+
+*Iteration #2*
+
+```{r}
+ei = lm_2c$residuals
+MAD = (1/0.6745)*(median(abs(ei-median(ei))))
+ui = ei/MAD
+wi = ifelse(abs(ui)>1.345, (1.345/abs(ui)), 1)
+wi
+```
+
+
+```{r}
+lm_2d1 = lm(Y~X, weights=wi, data=wtht_data)
+summary(lm_2d1)
+```
+
+
+*Iteration #3*
+
+```{r}
+ei = lm_2d1$residuals
+MAD = (1/0.6745)*(median(abs(ei-median(ei))))
+ui = ei/MAD
+wi = ifelse(abs(ui)>1.345, (1.345/abs(ui)), 1)
+wi
+```
+
+
+```{r}
+lm_2d2 = lm(Y~X, weights=wi, data=wtht_data)
+summary(lm_2d2)
+```
+
+*Interpretation:*
+
+The same observations (#2 and #3) recieve the smallest weights as is the previous two iterations. 
+
+The $\beta_1$ again seem to be close to each other. But the intercept seems to be far apart.
+
+**Question 3** Refer to the Prostate Cancer data set in Appendix C.5 and Homework 7&8. Select a random sample of 65 observations to use as the model-building data set (use set.seed(1023)). Use the remaining observations for the test data. (10 pts)
+
+**(a)** Develop a regression tree for predicting PSA. Justify your choice of number of regions (tree size), and interpret your regression tree. Test the performance of the model on the test data. (5 pts)
+
+```{r}
+prostate_data = read.csv("Prostate Cancer.csv")
+prostate_data$Seminal.vesicle.invasion = as.factor(prostate_data$Seminal.vesicle.invasion)
+prostate_data$Gleason.score = as.factor(prostate_data$Gleason.score)
+summary(prostate_data)
+```
+
+
+```{r}
+set.seed(1023)
+train_ind = sample(1:nrow(prostate_data), 65)
+test_ind = setdiff(1:nrow(prostate_data), train_ind)
+train_df = prostate_data[train_ind,]
+test_df = prostate_data[test_ind,]
+```
+
+
+```{r}
+library(rpart.plot)
+tree_prostate = rpart(PSA.level~., data=train_df)
+rpart.plot(tree_prostate, digits = 3)
+```
+
+*Interpretation:*
+
+- We can see that the tree model identified three significant regions based on two most significant predictors variables - `Cancer.volume` and `Capsular.penetration`. 
+- The numbers on each of the leaf nodes idicate the mean of the response variable in the region and the % value indicates the amount of variation explained.
+
+```{r}
+yHat_tree_te = predict(tree_prostate, test_df)
+SSE_tree = sum((yHat_tree_te-test_df$PSA.level)^2)
+SSE_tree
+```
+
+**(b)** Compare the performance of your regression tree model with that of the best regression model obtained in HW7. Which model is more easily interpreted and why? (5pts)
+
+
+```{r}
+hw7_best = lm(PSA.level~Cancer.volume+Capsular.penetration, data=train_df)
+summary(hw7_best)
+```
+
+
+```{r}
+yHat_lm_test = predict(hw7_best, test_df)
+SSE_hw7 = sum((yHat_lm_test-test_df$PSA.level)^2)
+SSE_hw7
+```
+
+*Interpretation:*
+
+Thus, the best linear model identified in HW 7 has lower SSE and preforms better on the test data than the tree model.
+
+**Question 4** Refer to Cement composition. The variables collected were the amount of tricalcium aluminate (X1), the amount of tricalcium silicate (X2), the amount of tetracalcium alumino ferrite (X3), the amount of dicalcium silicate (X4), and the heat evolved in calories per gram of cement (Y). (20pts)
+
+**(a)** Fit regression model for four predictor variables to the data. State the estimated regression function. (5pts)
+
+```{r}
+cement_data = read.csv("Cement Composition.csv")
+summary(cement_data)
+```
+
+
+```{r}
+lm_cement = lm(Y~., data=cement_data)
+summary(lm_cement)
+```
+
+*Estimated Regression Function:* $Y = 62.4054 + 1.5511*X_1+0.5102*X_2+0.1019*X_3-0.1441*X_4$
+
+**(b)** Obtain the estimated ridge standardized regression coefficients, variance inflation factors, and R2. Suggest a reasonable value for the biasing constant c (use seq(0,1,by=0.01)) based on the ridge trace, VIF values, and R2 values. (5pts) (hint: use vif.ridge function under library(genride), you can also get MSEs under this library)
+
+```{r}
+Y = as.matrix(cement_data$Y)
+X = as.matrix(cement_data[,-which(names(cement_data) %in% c("Y"))])
+lm_ridge = ridge(Y~., data=cement_data, lambda = seq(0,1,by=0.01))
+plot(lm_ridge, main="ridge")
+
+glm_ridge = glmnet(X,Y, lambda=seq(0,1,by=0.01), alpha=0)
+plot(glm_ridge)
+```
+
+
+```{r}
+vridge = vif(mod = lm_ridge)
+
+pch <- c(15:18, 7, 9)
+clr <- c("black", rainbow(5, start=.6, end=.1))
+
+matplot(rownames(vridge), vridge, type='b', 
+	xlab='Ridge constant (k)', ylab="Variance Inflation", 
+	xlim=c(0, 1), 
+	col=clr, pch=pch, cex=1.2)
+text(0.0, vridge[1,], colnames(vridge), pos=4)
+
+```
+
+
+```{r}
+par(mfrow=c(1,1))
+plot(rownames(vridge), lm_ridge$mse)
+```
+
+*Interpretation:*
+
+We select $\lambda = 0.1$ since all the measures seem to be stablilizing at that point (elbow effect).
+
+```{r}
+lm_ridge_best = lm.ridge(Y~., data=cement_data, lambda=0.1)
+lm_ridge_best$coef
+
+lm_ridge_best1 = glmnet(X,Y, alpha = 0, lambda = 0.1)
+lm_ridge_best1$beta
+```
+
+**(c)** Transform the estimated standardized ridge regression coefficients selected in part (b) to the original variables and obtain the fitted values for the 13 cases. How similar are these fitted values to those obtained with the ordinary least squares fit ill part (a)? (5pts)
+
+```{r}
+coef(lm_ridge_best)
+coef(lm_ridge_best1)
+```
+
+
+```{r}
+pred_ridge_best = predict(lm_ridge_best1, s=0.1, newx=X)
+pred_ridge_best
+```
+
+```{r}
+SSE_ridge = sum((pred_ridge_best-cement_data$Y)^2)
+SSE_ridge
+```
+
+
+```{r}
+lm_a_c = lm(pred_ridge_best~lm_cement$fitted.values)
+summary(lm_a_c)
+```
+
+*Interpretation*
+
+We can see that the $R^2$ between the fitted values in part (a) and part (c) is very high. So the fitted values in part (a) and part (c) are very similar.
+
+**(d)** Fit Lasso and Elastic net models and compare it against the Ridge regression model results. (5pts) (Hint: Calculate SSEs for each model)
+
+*LASSO*
+
+```{r}
+cv_lasso = cv.glmnet(X,Y, alpha = 1, lambda = seq(0,1,by=0.01))
+plot(cv_lasso)
+cv_lasso$lambda.min
+
+lasso_best = glmnet(X,Y, alpha = 1, lambda=cv_lasso$lambda.min)
+coef(lasso_best)
+```
+
+```{r}
+pred_lasso_best = predict(lasso_best, s=cv_lasso$lambda.min, newx=X)
+SSE_lasso = sum((pred_lasso_best-cement_data$Y)^2)
+SSE_lasso
+```
+
+*Elastic Net*
+
+```{r}
+cv_elnet = cv.glmnet(X,Y, alpha = 0.5, lambda = seq(0,1,by=0.01))
+plot(cv_elnet)
+cv_elnet$lambda.min
+
+elnet_best = glmnet(X,Y, alpha = 0.5, lambda=cv_elnet$lambda.min)
+coef(elnet_best)
+
+```
+
+
+```{r}
+pred_elnet_best = predict(elnet_best, s=cv_elnet$lambda.min, newx=X)
+SSE_elnet = sum((pred_elnet_best-cement_data$Y)^2)
+SSE_elnet
+```
+
+*Interpretation:*
+
+Here, we find the best lambda for LASSO and Elastic Net individually. The SSEs for the best Ridge, LASSO and Elastic Net are very similar to each other.
+
