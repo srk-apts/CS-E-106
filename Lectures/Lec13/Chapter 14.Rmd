@@ -1,0 +1,77 @@
+---
+title: "Chapter 14"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r}
+###### Logistic Regression ######
+library(knitr)
+library(faraway)
+par(mfrow=c(1,1))
+curve(ilogit(x),-6,6, xlab=expression(eta), ylab="p")
+
+data(wcgs, package="faraway")
+help(wcgs)
+lmod <- glm(chd ~ height + cigs, family = binomial, wcgs)
+summary(lmod)
+nothing <- glm(chd ~ 1,family=binomial,wcgs)
+summary(nothing)
+beta <- coef(lmod)
+exp(beta)
+#Odds ratios are above, We can say that the odds of heart disease increase by 2.6% with each additional inch in height and by 2.3% with each additional cigarette smoked per day. 
+#what are the odds of heart disease, if you smoke a pack a day
+exp(beta[3]*20)
+#So we have 59% increase in the odds of heart disease due to smoking. 
+anova(lmod, test="Chi")
+#The model is significant based on the anova table above.
+#Can we drop height?
+lmodc <- glm(chd ~ cigs, family = binomial, wcgs)
+anova(lmodc,lmod, test="Chi")
+#Yes height can  be dropped from the model.
+#95% confidence intervals for the coefficients
+confint(lmod)
+#Doing Prediction:
+linpred <- predict(lmod)
+predprob <- predict(lmod, type="response")
+head(linpred)
+head(predprob)
+head(ilogit(linpred))
+test<-data.frame(cbind(height=72,cigs=20))
+per=predict(lmod,test,type="response",se.fit=TRUE)
+#pre=predict(lmod,dat,type="response",se.fit=T)
+# Print 95% CIs 
+LowerCL = pre$fit-1.96*pre$se.fit; UpperCL = pre$fit+1.96*pre$se.fit
+Prediction = pre$fit
+results = round(cbind(LowerCL,Prediction,UpperCL),3)
+results
+#Hosmer and Lemeshow goodness of fit (GOF) test
+library(ResourceSelection)
+hoslem.test(lmod$y,fitted(lmod),g=5)
+#Fit is good. 
+#Variable selection
+wcgs$bmi <- with(wcgs, 703*wcgs$weight/(wcgs$height^2))
+lmod <- glm(chd ~ age + height + weight +bmi + sdp + dbp + chol + dibep + cigs +arcus, family=binomial, wcgs)
+nothing <- glm(chd ~ 1,family=binomial,wcgs)
+# Backwards selection is the default
+backwards = step(lmod) 
+step(lmod, trace=0)#would suppress step by step output.
+formula(backwards)
+
+###### Poisson Regression ######
+library(faraway)
+library(MASS)
+Miller.Lumber <- read.csv("/cloud/project/Miller Lumber.csv")
+pmod <- glm(Y ~ X1+X2+X3+X4+X5, family = poisson, Miller.Lumber)
+summary(pmod)
+beta <- coef(pmod)
+beta
+anova(pmod,test="Chisq") # Overall likelihood ratio test
+c(deviance(pmod), df.residual(pmod))
+##Negative Binomial Model####
+nbmod <- glm(Y ~ X1+X2+X3+X4+X5, family = negative.binomial(1), Miller.Lumber)
+summary(nbmod)
+anova(nbmod,test="Chisq") # Overall likelihood ratio test
+
+```
