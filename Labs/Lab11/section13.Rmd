@@ -1,0 +1,473 @@
+---
+title: 'CSCI E-106: Section 13:'
+author: "CSCI E-106 Staff"
+date: "12/06/2018"
+output: pdf_document
+toc: true
+number_sections: false
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(ggplot2)
+```
+
+
+
+>
+>
+>
+
+## (10.09) Reference **Brand Preference** Problem 6.5.
+\textit{In a small-scale experimental study of the relation between degree of brand liking $(Y)$ and moisture content $(X_1)$ and sweetness $(X_2)$ of the product, the following results were obtained from the experiment based on a completely randomized design (data are coded).}
+
+*Please use datasets titled **CH06PR05.txt** when applicable*
+
+>
+
+a Obtain the studentized deleted residuals and identify any outlying Y observations. Use the Bonferroni outlier test procedure with $\alpha =.10$. State the decision rule and conclusion.
+
+\textbf{Student's Solution Below}
+
+<!-- Input solution below -->
+
+```{r 10.09a}
+#Load the data
+dfCH10PR09 =read.delim(file=url("http://users.stat.ufl.edu/~rrandles/sta4210/Rclassnotes/data/textdatasets/KutnerData/Chapter%20%206%20Data%20Sets/CH06PR05.txt"), sep="", header = FALSE)
+colnames(dfCH10PR09) =c("BrandLiking", "MoistureContent", "Sweetness")
+
+#find our lmfit
+lmCH10PR09 =lm(BrandLiking~MoistureContent+Sweetness, dfCH10PR09)
+
+#calculate our deleted residuals using the rstudent function:
+# this Returns the Studentized residuals based on rank-based estimation 
+deletedResiduals = rstudent(lmCH10PR09)
+print(deletedResiduals)
+
+#you can round them to the 3rd to get smaller results 
+round(deletedResiduals,3)
+
+
+#longer way to do this without the rstudent function
+n = length(dfCH10PR09$BrandLiking)
+
+# Number of regression parameters
+p = 3
+
+hii =hatvalues(lmCH10PR09)
+ei = lmCH10PR09$residuals
+SSE =anova(lmCH10PR09)[3,2]
+
+deletedRes = ei*((n-p-1)/(SSE*(1-hii)-ei^2))^.5
+round(deletedRes,3)
+
+#degrees of freedom
+df = n-p-1
+print(df)
+
+t = qt(1-.10/(2*n), df = n-p-1)
+print(t)
+
+# finding our top 3 residuals 
+head(sort(abs(deletedRes), decreasing = TRUE),3)
+```
+H_0: Index 14 is not a outlier
+H_a: Index 14 is an outlier 
+Decision Rule: |t14| <= 3.3, we conclude H_0. Otherwise, H_a
+
+Conclusion: if |t_$i$| <= 3.308 conclude no outliers, otherwise conclude that i is an outlier. 
+Since |t_$14$| = 2.103 we can conclude no outliers
+
+<!-- End of solution -->
+
+>
+
+b. Obtain the diagonal elements of the hat matrix, and provide an explanation for the pattern in these elements.
+
+\textbf{Student's Solution Below}
+
+<!-- Input solution below -->
+
+```{r 10.09b}
+#find diagonal elements 
+diagonalElements = hatvalues(lmCH10PR09)
+print(diagonalElements)
+
+#check if they sum up to 3 (our Number of regression parameters)
+sum(diagonalElements)
+```
+Conclusion: Our elements seem to have the same two values showing that we do not have outliers.
+<!-- End of solution -->
+
+>
+
+c. Are any of the observations outlying with regard to their X values according to the rule of thumb stated in the chapter?
+
+\textbf{Student's Solution Below}
+
+<!-- Input solution below -->
+```{r 10.09c}
+#mean leverage value
+meanLev = p/n
+
+hii > 2* meanLev
+```
+Conclusion: We see that none of the values are greater than 2 times the leverage so we say that we have no outliers. 
+
+
+<!-- End of solution -->
+
+>
+
+d. Management wishes to estimate the mean degree of brand liking for moisture content $X_1 = 10$ and sweetness $X_2 = 3$. Construct a scatter plot of $X_2$ against $X_1$ and determine visually whether this prediction involves an extrapolation beyond the range of the data. Also, use (10.29) to determine whether an extrapolation is involved. Do your conclusions from the two methods agree?
+
+\textbf{Student's Solution Below}
+
+<!-- Input solution below -->
+```{r problem 10.09 d}
+#scatter plot
+ggplot(data=dfCH10PR09,aes(x=MoistureContent, y=Sweetness))+geom_point()
+
+X = matrix(data=c(rep(1,n), dfCH10PR09$MoistureContent, dfCH10PR09$Sweetness),nrow=n,ncol=p)
+
+X_new  = matrix(data=c(1,10,3),nrow=1,ncol=p)
+print(X_new)
+
+h_newnew = X_new%*%solve(t(X)%*%X)%*%t(X_new)
+print(h_newnew)
+```
+Conclusion: The values x1 = 10 and x2 = 3 are in the range so we do not have to do any extrapolation.
+And we see that the leverage point is in line with the existing leverage values. 
+
+<!-- End of solution -->
+
+>
+
+e. The largest absolute studentized deleted residual is for case 14. Obtain the DFFITS, DFBETAS, and Cook's distance values for this case to assess the influence of this case. What do you conclude?
+
+\textbf{Student's Solution Below}
+
+<!-- Input solution below -->
+```{r 10.09 part e}
+#obtain DFFITS
+dffits_14 = dffits(lmCH10PR09)[14]
+print(round(dffits_14,3))
+
+#obtain DFBETAS
+dfbetas_14 = dfbetas(lmCH10PR09)[14,]
+print(round(dfbetas_14,3))
+
+#cooks distance 
+
+x = cbind(1,dfCH10PR09$MoistureContent,dfCH10PR09$Sweetness)
+
+h = x%*% solve(t(x)%*%x)%*% t(x)
+h_diag = diag(h)
+sum_h = sum(h_diag)
+
+MSE = SSE / lmCH10PR09$df.residual
+
+cooksdistance = lmCH10PR09$residuals^2/(sum_h*MSE)*(h_diag/(1-h_diag)^2)
+print(cooksdistance[14])
+```
+Conclusion: The absolute value of dfits at 14 is bigger than 1 but is a bit close so it could be an influential case. But then when we look at the beta values none of them are near one so we see that this is not an influential case. From all of our reviews it seems that case 14 does seem to be an influential case. 
+<!-- End of solution -->
+
+>
+
+f. Calculate the average absolute percent difference in the fitted values with and without case 14. What does this measure indicate about the influence of case 14?
+
+\textbf{Student's Solution Below}
+
+<!-- Input solution below -->
+```{r 10.09e}
+
+predWith = fitted(lmCH10PR09)
+fitWithout = lm(BrandLiking~MoistureContent+Sweetness, dfCH10PR09[-14,])
+predWithout = predict(fitWithout, newdata =dfCH10PR09)
+
+averageAbs = 100*mean(abs(predWith-predWithout)/predWith)
+print(averageAbs)
+```
+Conclusion: So we can see here that the difference between the with and without case of 14 would be 68%. 
+
+
+<!-- End of solution -->
+
+>
+
+g. Calculate Cook's distance $D_i$ for each case and prepare an index plot. Are any cases influential according to this measure?
+
+\textbf{Student's Solution Below}
+
+<!-- Input solution below -->
+```{r problem 10.09 e}
+
+Di <- ((ei^2)/(p*MSE))*(hii/(1-hii)^2)
+print(Di)
+
+```
+Conclusion: There are no influential points from the graphs. 
+
+
+<!-- End of solution -->
+
+>
+
+
+
+## (10.15) Reference **Brand Preference** Problem 6.5a.
+
+a. What do the scatter plot matrix and the correlation matrix show about pairwise linear associations among the predictor variables?
+
+\textbf{Student's Solution Below}
+
+<!-- Input solution below -->
+```{r problem 10.15a}
+
+#load the data 
+dfCH10PR15 =read.delim(file=url("http://users.stat.ufl.edu/~rrandles/sta4210/Rclassnotes/data/textdatasets/KutnerData/Chapter%20%206%20Data%20Sets/CH06PR05.txt"), sep="", header = FALSE)
+colnames(dfCH10PR15) =c("BrandLiking", "MoistureContent", "Sweetness")
+
+#plot the pairs (theres a few ways to do this)... 
+pairs(dfCH10PR15)
+
+#or we could use ggpairs 
+library(GGally)
+ggpairs(dfCH10PR15)
+
+#matrix correlation
+cor(dfCH10PR15)
+```
+Conclusion: We can see that there is no correlation between them. 
+
+<!-- End of solution -->
+
+
+>
+
+b. Find the two variance inflation factors. Why are they both equal to 1?
+
+\textbf{Student's Solution Below}
+
+<!-- Input solution below -->
+```{r problem 10.15 b}
+library(car)
+
+#find our lmfit
+lmCH10PR15 =lm(BrandLiking~MoistureContent+Sweetness, dfCH10PR09) 
+
+vif(lmCH10PR15)
+```
+
+<!-- End of solution -->
+
+
+>
+
+
+
+## (10.27) Refer to the **SENIC** dataset in Appendix C.1 and Project 9.25.
+\textit{SENIC DATASET DESCRIPTION: The primary objective of the Study on the Efficacy of Nosocomial Infection Control (SENIC Project) was to determine whether infection surveillance and control programs have reduced the rates of nosocomial (hospital-acquired) infection in United States hospitals. This data set consists of a random sample of 113 hospitals selected from the original 338 hospitals surveyed. Each line of the dataset has an identification number and provides information on 11 variables for a single hospital. The data presented here are for the 1975-76 study period.}
+
+*Please use dataset titled **APPENC01.txt** when applicable*
+
+>
+
+The regression model containing age, routine chest X-ray ratio, and average daily census in first-order terms is to be evaluated in detail based on the model-building data set.
+
+
+a. Obtain the residuals and plot them separately against $\hat{Y}$, each of the predictor variables in the model, and each of the related cross-product terms. On the basis of these plots, should any modifications of the model be made?
+
+\textbf{Student's Solution Below}
+
+<!-- Input solution below -->
+```{r problem 10.27 a }
+#load the dataset and give it values 
+senic.df = read.table(url("http://users.stat.ufl.edu/~rrandles/sta4210/Rclassnotes/data/textdatasets/KutnerData/Appendix%20C%20Data%20Sets/APPENC01.txt"), header=FALSE, col.names = c("id", "los", "age", "infection_risk", "rcr", "xray", "nbds", "msa", "region", "adc", "numnurses", "facilities"))
+
+senic.df[ ,c('msa', 'region')] = list(NULL)
+
+#we then see that we need to use cases 57 - 113 only in order to build our model properly 
+
+model.df = senic.df[57:113,]
+attach(model.df)
+model =lm(log10(los)~age+xray+adc, data = model.df)
+
+lm = lm(los~(age+xray+adc)^2,senic.df)
+
+
+#we can print out our residuals to show them which would satisfy the 
+#first question to obtain our residuals from the model 
+
+ei = model$residuals
+print(round(ei,3))
+
+
+#now lets plot the points seperately against y hat
+ggplot(model,aes(x=model$fitted.values, y=model$residuals))+ 
+  geom_point()+ geom_smooth(method=lm)+xlab("Fitted Values")+ ylab("Residuals")
+
+ggplot(model,aes(x=xray, y=model$residuals))+ geom_point()+ 
+  geom_smooth(method="lm")+xlab("X-ray ratio")+ ylab("Residuals") 
+
+ggplot(model,aes(x=age, y=model$residuals))+ geom_point()+ 
+  geom_smooth(method="lm")+xlab("Age")+ ylab("Residuals")
+
+ggplot(model,aes(x=adc, y=model$residuals))+ geom_point()+ 
+  geom_smooth(method="lm")+xlab("Avg Daily Census")+ ylab("Residuals")
+```
+Conclusion: We say that our variances look to be ok and do not seem to show any certain pattern. 
+
+
+<!-- End of solution -->
+
+>
+
+b. Prepare a normal probability plot of the residuals. Also obtain the coefficient of correlation between the ordered residuals and their expected values under normality. Test the reasonableness of the normality assumption, using Table B.6 and $\alpha = .05$. What do you conclude?
+
+\textbf{Student's Solution Below}
+
+<!-- Input solution below -->
+```{r problem 10.27 b}
+#first we want to show our expected values 
+MSE =anova(model)$"Mean Sq"[4]
+k = rank(ei)
+n = length(age)
+expV =sqrt(MSE)*qnorm((k-.375)/(n+0.25))
+print(round(expV,3))
+
+#normal probability plot 
+qqnorm(ei)
+```
+Conclusion: 
+
+H0: normal 
+Ha: not normal 
+We will conclude H0 in this case since our r = .990 based on table b.6 our r critical is .98 so our errors are normally distributed.
+
+
+
+<!-- End of solution -->
+
+>
+
+c. Obtain the scatter plot matrix, the correlation matrix of the $X$ variables, and the variance inflation factors. Are there any indications that serious multicollinearity problems are present? Explain.
+
+\textbf{Student's Solution Below}
+
+<!-- Input solution below -->
+```{r problem 10.27 c }
+#show our variance inflation factors 
+round(vif(model),3)
+
+#scatter plot matrix 
+ourxvars =data.frame(age, xray, adc)
+
+ggpairs(ourxvars)
+```
+Conclusion: We see no multicollinearity issues as our VIF values are all close to 1. 
+
+
+<!-- End of solution -->
+
+>
+
+d. Obtain the studentized deleted residuals and prepare a dot plot of these residuals. Are any outliers present? Use the Bonferroni outlier test procedure with $\alpha =.01$. State the decision rule and conclusion.
+
+\textbf{Student's Solution Below}
+
+<!-- Input solution below -->
+```{r 10.27 d}
+
+#first lets find our hii
+one =rep(1,length(los))
+x_matrix =cbind(one, age, xray, adc)
+x_matrix_trans =t(x_matrix)
+h_matrix = x_matrix%*%(solve(x_matrix_trans%*%x_matrix))%*%x_matrix_trans
+hii =diag(h_matrix)
+print(round(hii,3))
+
+
+#now we need to find the student deleted residuals
+
+model.anova = anova(model)
+ei = model$residuals
+n = length(los)
+p = 4
+sse = model.anova$"Sum Sq"[4]
+
+ti = ei*sqrt(((n-p-1)/(sse*(1-hii)-ei^2)))
+print(round(ti,3))
+
+#prepare our dotplot 
+ggplot(model,aes(x = ei))+ geom_dotplot()
+
+#now use the Bonferroni outlier test procedure with $\alpha =.01$
+
+t_crit = qt(1-.01/(2*n),n-p-1)
+print(round(t_crit,3))
+```
+
+Conclusion: 
+If our ti <= t_crit then we say no outliers. 
+If our ti > t_crit then we say there are outliers. 
+
+We can see that all of our abs(ti) <= 4.04 so we can conclude that there are no outliers.  
+
+<!-- End of solution -->
+
+>
+
+e. Obtain the diagonal elements of the hat matrix. Using the rule of thumb in the text, identify any outlying $X$ observations.
+
+\textbf{Student's Solution Below}
+
+<!-- Input solution below -->
+```{r problem 10.27e}
+
+#Obtain the diagonal elements of the hat matrix which weve already done 
+print(round(hii,3))
+
+#use rule of thumb to identify any outlying x observations 
+find_any_cases = which(hii > (2*p/n))
+find_any_cases = find_any_cases+56
+print(find_any_cases)
+
+#so we see that the following are cases that could have outlying observations as we can see in part f
+
+```
+
+<!-- End of solution -->
+
+>
+
+f. Cases $62, 75, 106,$ and $112$ are moderately outlying with respect to their $X$ values, and case $87$ is reasonably far outlying with respect to its $Y$ value. Obtain DFFITS, DFBETAS, and Cook's distance values for these cases to assess their influence. What do you conclude?
+
+\textbf{Student's Solution Below}
+
+<!-- Input solution below -->
+```{r problem 10.27 f}
+
+#obtain DFFITS
+
+dffits = dffits(lm)[c(62,75,87,106,112)]
+print(dffits)
+
+#obtain DFBETAS
+df_betas = dfbetas(lm)[c(62,75,87,106,112),]
+print(df_betas>2/sqrt(n))
+
+#cooks distance 
+
+cooks_dist = cooks.distance(lm)[c(62,75,87,106,112)]
+f = pf(cooks_dist,p,n-p)
+print(cooks_dist)
+
+```
+
+<!-- End of solution -->
+
+>

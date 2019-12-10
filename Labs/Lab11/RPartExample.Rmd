@@ -1,0 +1,27 @@
+---
+title: "RPart"
+author: "TAs"
+date: "12/9/2019"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(rpart)
+```
+
+## RPart
+
+
+```{r cars}
+fit <- rpart(Kyphosis ~ Age + Number + Start, data = kyphosis)
+fit2 <- rpart(Kyphosis ~ Age + Number + Start, data = kyphosis,
+parms = list(prior = c(.65,.35), split = "information"))
+fit3 <- rpart(Kyphosis ~ Age + Number + Start, data = kyphosis,
+control = rpart.control(cp = 0.05))
+par(mfrow = c(1,2), xpd = NA) # otherwise on some devices the text is clipped
+plot(fit)
+text(fit, use.n = TRUE)
+plot(fit2)
+text(fit2, use.n = TRUE)
+```
