@@ -1,0 +1,56 @@
+---
+title: "Chapter 13"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r}
+library(knitr)
+###### Non-Linear Regression ######
+require(graphics)
+Learning.Curve <- read.csv("/cloud/project/Learning Curve.csv")
+f.nonreg<-nls(Y~gamma0+X1*gamma1+gamma3*exp(gamma2*X2),start=list(gamma0=1.025,gamma1=-0.0459,gamma2=-0.0459,gamma3=-0.5),data=Learning.Curve)
+summary(f.nonreg)
+
+###### Neuron Networks ######
+library(neuralnet)
+
+#Notes:
+#For some reason the formula y~. is not accepted in the neuralnet() function. You need to first write the formula and then pass it as an argument in the fitting function.
+
+#The hidden argument accepts a vector with the number of neurons for each hidden layer, while the argument linear.output is used to specify whether we want to do regression linear.output=TRUE or classification linear.output=FALSE
+
+
+Ischemic.Heart.Disease <- read.csv("/cloud/project/Ischemic.Heart.Disease.csv")
+Y<- log(Ischemic.Heart.Disease$Y)
+X1<-Ischemic.Heart.Disease$Interventions
+X2<-Ischemic.Heart.Disease$Drugs
+X3<-Ischemic.Heart.Disease$Comorbidities
+X4<-Ischemic.Heart.Disease$Complications
+nn.data<-data.frame(cbind(Y,X1,X2,X3,X4))
+pop<-nn.data[nn.data[,1]!=-Inf,]
+
+max = apply(pop , 2 , max)
+min = apply(pop, 2 , min)
+scaled = as.data.frame(scale(pop, center = min, scale = max-min))
+train.data= scaled[1:400, ]
+test.data= scaled[-c(1:400), ]
+set.seed(123)
+
+NN = neuralnet(Y ~ X1 + X2 + X3 + X4, train.data, hidden = 5 , linear.output= T )
+plot(NN)
+
+pred.Y<-NN$net.result[[1]]*(max(pop$Y)-min(pop$Y))+min(pop$Y)
+act.Y<- (train.data$Y)*(max(pop$Y)-min(pop$Y))+min(pop$Y)
+MSE.train<-sum((pred.Y- act.Y)^2)/nrow(train.data)
+MSE.train
+#checking the performance on the test data
+NN_test<- compute(NN,test.data[,2:5])
+pr.y_o <- (NN_test$net.result)*(max(pop$Y)-min(pop$Y))+min(pop$Y)
+act.test.y <- (test.data$Y)*(max(pop$Y)-min(pop$Y))+min(pop$Y)
+MSE.test <- sum((act.test.y - pr.y_o)^2)/nrow(test.data)
+MSE.test
+data.frame(cbind(MSE.train,MSE.test))
+
+```

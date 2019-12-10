@@ -1,0 +1,123 @@
+---
+title: "Chapter 12"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r}
+library(knitr)
+###### Durbin Watson Test ######
+Blaisdell <- read.csv("/cloud/project/Blaisdell.csv")
+f<-lm(Company.Sales~Industry.Sales,data=Blaisdell)
+summary(f)
+
+library(lmtest)
+#Ho:rho=0;Ha:rho>0
+dwtest(f)
+#dwtest(f, alternative='less')
+#dwtest(f, alternative='two.sided')
+
+#############################
+##Cochrane-Orcutt Procedure##
+#############################
+
+et<-f$residuals
+et1 <- c(0,et[-(length(et))])
+
+
+#alternatively, 
+#library(Hmisc)
+#et1<-Lag(et, shift = 1)
+
+d1<-sum(et1*et)
+d2<-sum(et1^2) 
+rho<-d1/d2
+
+#alternatively, 
+#f.alt<-lm(et[-1] ~ et1[-1]-1)
+#rho<-f.alt$coefficients
+
+
+Yt=Blaisdell$Company.Sales
+Xt=Blaisdell$Industry.Sales 
+Yt1 <- c(0,Yt[-(length(Yt))])
+Xt1 <- c(0,Xt[-(length(Xt))])
+
+Y.prime=Yt-rho*Yt1
+X.prime=Xt-rho*Xt1 
+
+f.co<-lm(Y.prime[-1] ~ X.prime[-1])
+summary(f.co)
+dwtest(f.co)
+
+#changing back to orginal scale
+bo<-f.co$coefficients[1]/(1-rho)
+b1<-f.co$coefficients[2]
+
+#alterntively
+#Interactive method using to solve first order autocorrelation problems. This procedure estimates both autocorrelation and beta coefficients recursively until we reach the convergence (8th decimal).
+
+library(orcutt)
+coch = cochrane.orcutt(f, convergence = 8, max.iter=10000)
+coch
+
+#########################
+##Hildreth-Lu Procedure##
+#########################
+library(HoRM)
+
+r.values <- seq(from=-1,to=1,by=0.01)
+SSE.r <- rep(0,times=length(r.values))
+for (i in 1:length(r.values)){
+ftemp<-hildreth.lu(Yt, Xt, rho=r.values[i])
+ftemp1<-anova(ftemp)
+SSE.r[i]<-ftemp1$`Sum Sq`[2]
+}
+res<-data.frame(cbind(r.values,SSE.r))
+res[which.min(res$SSE.r),]
+
+f.hlu<-hildreth.lu(Yt, Xt, rho=res[which.min(res$SSE.r),1])
+summary(f.hlu)
+
+Y.t1 <- c(0,Yt[-(length(Yt))])
+X.t1 <- c(0,Xt[-(length(Xt))])
+Y.prime <- Yt - res[which.min(res$SSE.r),1]*Yt1
+X.prime <- Xt - res[which.min(res$SSE.r),1]*Xt1
+
+dwtest(lm(Y.prime[-1] ~ X.prime[-1]))
+
+##############################
+##First Difference Procedure##
+##############################
+
+Y.prime <- Yt - Yt1
+X.prime <- Xt - Xt1
+
+f.fd<-lm(Y.prime[-1] ~ X.prime[-1]-1)
+summary(f.fd)
+dwtest(f.fd)
+
+###############################################
+##Forecasting with Autocorrelated Error Terms##
+###############################################
+X.21 <- 175.3
+X.20 <- rev(Xt)[1]
+e.20<-rev(f.co$residuals)[1]
+Y.21<-bo+b1*X.21
+F.21<-Y.21+e.20
+
+
+X.prime.21 <- X.21 - rho*X.20  
+X.bar.prime <- mean(X.prime[-1])
+MSE <- summary(f.co)$sigma^2
+
+s.pred <- sqrt(MSE*(1 + (1/length(Yt)) + (X.prime.21 - X.bar.prime)^2/(sum((X.prime[-1]-X.bar.prime)^2))))
+
+# Prediction interval:
+
+alpha <- 0.05
+pred.L <- F.21 - qt(1-alpha/2,df=17)*s.pred
+pred.U <- F.21 + qt(1-alpha/2,df=17)*s.pred
+data.frame(cbind(pred.L,pred.U))
+```
