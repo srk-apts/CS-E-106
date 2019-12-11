@@ -1,0 +1,166 @@
+---
+title: '**CS-E-106: Data Modeling**'
+subtitle: '**Assignment 10**'
+date: '**Due Date:** 12/12/2019'
+author:
+  - '**Instructor: Hakan Gogtas**'
+  - '**Submitted by:** Saurabh Kulkarni'
+output: 
+  pdf_document: 
+    latex_engine: xelatex
+---
+
+
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(tidy.opts=list(width.cutoff=80), 
+                      fig.width=10, fig.height=5)
+
+loadLib = function(libName)
+{
+    if(require(libName, character.only=TRUE))
+    {
+        cat(libName, "loaded properly\n")
+    } else {
+        cat("Installing", libName, "\n")
+        install.packages(libName)
+        if(require(libName, character.only=TRUE))
+        {
+            cat(libName, "loaded properly\n")
+        } else {
+            stop(c(libName, "not properly installed\n"))
+        }
+    }
+}
+
+libs = c("ggplot2", "knitr", "MASS", "ggcorrplot", "GGally", "alr3", 
+         "lattice", "dplyr", "ALSM", "leaps", "olsrr", "qpcR", "rpart",
+         "glmnet", "genridge", "neuralnet")
+
+for (lib in libs)
+{
+    loadLib(lib)
+}
+
+```
+
+
+
+**Question 1** Refer to the Prostate Cancer data set in Appendix C.5 and Homework 9. Select a random sample of 65 observations to use as the model-building data set (use set.seed(1023)). Use the remaining observations for the test data. (10 pts)
+
+**(a)** Develop a neural network model for predicting PSA. Justify your choice of number of hidden nodes and interpret your model. Test the model performance on the test data.
+
+```{r}
+prostate_data = read.csv("Prostate Cancer.csv")
+summary(prostate_data)
+```
+
+```{r}
+max = apply(prostate_data, 2, max)
+min = apply(prostate_data, 2, min)
+scaled_df = as.data.frame(scale(prostate_data, center=min, scale=max-min))
+
+```
+
+
+```{r}
+set.seed(1023)
+train_ind = sample(1:nrow(scaled_df), 65)
+test_ind = setdiff(1:nrow(scaled_df), train_ind)
+train_df = scaled_df[train_ind,]
+test_df = scaled_df[test_ind,]
+
+```
+
+
+```{r}
+NN = neuralnet(PSA.level ~ ., data=train_df, hidden=7 , linear.output= T, stepmax=1e6)
+plot(NN)
+```
+
+```{r}
+maxY= max(prostate_data$PSA.level)
+minY = min(prostate_data$PSA.level)
+```
+
+
+```{r}
+yHat_NN_te = predict(NN, test_df)*(maxY-minY)+minY
+yAct_te = test_df$PSA.level*(maxY-minY)+minY
+SSE_NN = sum((yHat_NN_te-yAct_te)^2)
+SSE_NN
+```
+
+
+**(b)** Compare the performance of your neuron network model with regression tree model obtained in HW9. Which model is more easily interpreted and why? (5pts)
+
+*Tree Model - HW 9*
+
+```{r}
+library(rpart.plot)
+tree_prostate = rpart(PSA.level~., data=train_df)
+rpart.plot(tree_prostate, digits = 3)
+```
+
+```{r}
+yHat_tree_te = predict(tree_prostate, test_df)*(maxY-minY)+minY
+SSE_tree = sum((yHat_tree_te-yAct_te)^2)
+SSE_tree
+```
+
+
+**(c)** Compare the performance of your neural network model with that of the best regression model obtained in homework 8. Which model is more easily interpreted and why?
+
+*Best Model - HW 8*
+
+```{r}
+lm_prostate_best = lm(PSA.level~Cancer.volume+Capsular.penetration, data=train_df)
+summary(lm_prostate_best)
+```
+
+
+```{r}
+yHat_lm_te = predict(lm_prostate_best, test_df)*(maxY-minY)+minY
+SSE_best_lm = sum((yHat_lm_te-yAct_te)^2)
+SSE_best_lm
+```
+
+
+**Question 2** Refer to the Disease outbreak data set in Appendix C.10. Savings account status is the response variable and age, socioeconomic status, and city sector are the predictor variables.
+
+**(a)** Fit logistic regression model to predict the saving account status on the predictor variables in first-order terms and interaction terms for. all pairs of predictor variables. State the fitted response function.
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
