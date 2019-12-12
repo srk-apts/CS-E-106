@@ -36,7 +36,7 @@ loadLib = function(libName)
 
 libs = c("ggplot2", "knitr", "MASS", "ggcorrplot", "GGally", "alr3", 
          "lattice", "dplyr", "ALSM", "leaps", "olsrr", "qpcR", "rpart",
-         "glmnet", "genridge", "neuralnet")
+         "glmnet", "genridge", "neuralnet", "ResourceSelection")
 
 for (lib in libs)
 {
@@ -92,6 +92,10 @@ SSE_NN = sum((yHat_NN_te-yAct_te)^2)
 SSE_NN
 ```
 
+*Interpretation:*
+
+We select 7 hidden nodes, one for each variable. SSE on test data = 70171.34
+
 
 **(b)** Compare the performance of your neuron network model with regression tree model obtained in HW9. Which model is more easily interpreted and why? (5pts)
 
@@ -109,6 +113,11 @@ SSE_tree = sum((yHat_tree_te-yAct_te)^2)
 SSE_tree
 ```
 
+*Interpretation:*
+
+We see that the tree model performs slightly better than the neural network with the selected architecture above.
+
+The tree model is more interpretable, since it gives a clear decision flow for branching into each of the regions.
 
 **(c)** Compare the performance of your neural network model with that of the best regression model obtained in homework 8. Which model is more easily interpreted and why?
 
@@ -126,31 +135,165 @@ SSE_best_lm = sum((yHat_lm_te-yAct_te)^2)
 SSE_best_lm
 ```
 
+*Interpretation:*
+
+The best subset model selected in homework 8 is the best amongst the three model above based on the SSE on test data. 
+
+Again, the neural network model is comparitively less interpetable as it does not give us any inferencing measures like p-values for different variables or any other statistical inferencing.
+
 
 **Question 2** Refer to the Disease outbreak data set in Appendix C.10. Savings account status is the response variable and age, socioeconomic status, and city sector are the predictor variables.
 
 **(a)** Fit logistic regression model to predict the saving account status on the predictor variables in first-order terms and interaction terms for. all pairs of predictor variables. State the fitted response function.
 
 ```{r}
+disease_data = read.csv("Disease Outbreak.csv")
+disease_data$Socioeconomic.status = as.factor(disease_data$Socioeconomic.status)
+disease_data$Sector = as.factor(disease_data$Sector)
+disease_data$Disease.status = as.factor(disease_data$Disease.status)
+summary(disease_data)
+```
+
+```{r}
+Y = disease_data$Savings.account.status
+X1 = disease_data$Age
+X2 = disease_data$Socioeconomic.status
+X3 = disease_data$Sector
+X4 = disease_data$Disease.status
+X2_2 = ifelse(X2==2, 1, 0)
+X2_3 = ifelse(X2==3, 1, 0)
+X3_2 = ifelse(X3==2, 1, 0)
+X4_1 = ifelse(X4==1, 1, 0)
+
+df = as.data.frame(cbind(Y,X1,X2_2,X2_3,X3_2,X4_1))
+
+df$X1.X2_2 = X1*X2_2
+df$X1.X2_3 = X1*X2_3
+df$X1.X3_2 = X1*X3_2
+df$X1.X4_1 = X1*X4_1
+df$X2_3.X3_2 = X2_3*X3_2
+df$X2_3.X4_1 = X2_3*X4_1
+df$X2_2.X3_2 = X2_2*X3_2
+df$X2_2.X4_1 = X2_2*X4_1
+df$X3_2.X4_1 = X3_2*X4_1
+
+summary(df)
 ```
 
 
 ```{r}
+logreg_full = glm(Y~., data=df, family=binomial)
+summary(logreg_full)
+```
+
+*Estimate Response function:* $\log_{e}(\frac{Y}{1-Y}) = 0.155908+0.035838*X1-1.306280*X2_2-2.151271*X2_3+0.916937*X3_2-0.946814*X4_1+0.008166*X1.X2_2+0.002890*X1.X2_3-0.021077*X1.X3_2+0.021247*X1.X4_1+0.388653*X2_3.X3_2-0.137603*X2_3.X4_1-0.131848*X2_2.X3_2-0.111640*X2_2.X4_1+0.930980*X3_2.X4_1$
+
+**(b)** Use the likelihood ratio test to determine whether all interaction terms can be dropped from the regression model; use α = .01. State the alternatives, full and reduced models, decision rule, and conclusion. What is the approximate P-value of the test?
+
+
+$H_0: E(Y_ij)=[1+\exp(-X_j'\beta)^{-1}]$
+$H_1: E(Y_ij) \neq [1+\exp(-X_j'\beta)^{-1}]$
+
+```{r}
+logreg_red = glm(Y~X1+X2_2+X2_3+X3_2+X4_1, data=df, family=binomial)
+summary(logreg_red)
 ```
 
 
 ```{r}
+anova(logreg_red, logreg_full, test="Chi")
+```
+
+*Interpretation:*
+
+The p-value is 0.9803. 
+
+With such high p-value, we can drop all the interaction terms at $\alpha=0.01$ as it suggests there is no significant difference in the deviance measure of the two models.
+
+**(c)** Conduct the Hosmer-Lemeshow goodness of fit test for the appropriateness of the logistic regression function by forming five groups of approximately 20 cases each; use α = .05.
+
+$H_0: E(Y_ij)=[1+\exp(-X_j'\beta)^{-1}]$
+$H_1: E(Y_ij) \neq [1+\exp(-X_j'\beta)^{-1}]$
+
+```{r}
+?hoslem.test
+hoslem.test(logreg_full$y,fitted(logreg_full),g=5)
+qchisq(1-0.05,3)
+```
+
+*Decision Rule:*
+
+$DEV(X_0, X_1,...X_{p-1}) \leq \chi^2(1-\alpha; c-p)$ conclude $H_0$
+
+$DEV(X_0, X_1,...X_{p-1}) > \chi^2(1-\alpha; c-p)$ conclude $H_1$
+
+
+*Result:*
+
+The p-value is 0.8366. 
+
+Also, 0.85353<=7.814728 i.e. $DEV(X_0, X_1,...X_{p-1}) \leq \chi^2(1-\alpha; c-p)$. Thus, we conclude $H_0$, the fit is good.
+
+
+**Question 3** Refer to the Geriatric study. A researcher in geriatrics designed a prospective study to investigate the effects of two interventions on the frequency of falls. One hundred subjects were randomly assigned to one of the two interventions: education only (X1 = 0) and education plus aerobic exercise training (X1 = 1). Subjects were at least 65 years of age and in reasonably good health. Three variables considered to be important as control variables were gender (X2:0=female;1=male), a balance index (X3). and a strength index (X4). The higher balance index, the more stable is the subject and the higher the strength index, the stronger is the subject. Each subject kept a diary recording the number of falls (Y) during the six months of the study.
+
+**(a)** Fit the regression model. State the estimated regression coefficients, their estimated standard deviations. and the estimated response function.
+
+```{r}
+geriatric_data = read.csv("Geriatric Study.csv")
+geriatric_data$X1 = as.factor(geriatric_data$X1)
+geriatric_data$X2 = as.factor(geriatric_data$X2)
+summary(geriatric_data)
 ```
 
 
 ```{r}
+pmod_geriatric = glm(Y~X1+X2+X3+X4, data=geriatric_data, family=poisson)
+summary(pmod_geriatric)
 ```
 
 
 ```{r}
+confint(pmod_geriatric)
+```
+
+*Interpretation:*
+
+We can see the estimated coefficients and their estimated standard deviations in the summary print out of the model. We can also see the 95% confidence intervals on the coefficients.
+
+*Estimated Response Function:*
+
+$\log_{e}(\frac{Y}{1-Y}) = 0.489467-1.069403*X1_1-0.046606*X2_1+0.009470*X3+0.008566*X4$
+
+
+**(b)** Assuming that the fitted model is appropriate, use the likelihood ratio test to determine whether gender (X2) can be dropped from the model: State the full and reduced models. decision rule. and conclusion. What is the P-value of the test
+
+$H_0: \beta_2=0$
+$H_1: \beta_2\neq0$
+
+
+```{r}
+pmod_geriatric_red = glm(Y~X1+X3+X4, data=geriatric_data, family=poisson)
+summary(pmod_geriatric_red) 
 ```
 
 
+```{r}
+anova(pmod_geriatric_red, pmod_geriatric, test="Chi")
+```
+
+*Interpretation:*
+
+The p-value is 0.6976. 
+
+With such high p-value, we can drop X2 as it suggests there is no significant difference in the deviance measure of the two models.
+
+**(c)** Predict the number of falls for X1=1, X2=0, X3=45, X4=70.
+
+```{r}
+Xh = data.frame(X1=as.factor(c(1)), X2=as.factor(c(0)), X3=c(45), X4=c(70))
+predict(pmod_geriatric, Xh, type="response", se.fit=TRUE)
+```
 
 
 
