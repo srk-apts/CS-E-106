@@ -567,9 +567,9 @@ summary(market_data)
 
 ```{r}
 reg1 = regsubsets(Market.Share~Price+Gross.Nielsen.Rating.Points+Discount.Price
-                  +Package.Promotion+Year, data=market_data, nbest=3, nvmax=5)
-summary(reg1)
+                  +Package.Promotion+Year, data=market_data)
 res.sum = summary(reg1)
+res.sum$which
 ```
 
 
@@ -600,7 +600,7 @@ summary(model)
 
 ```{r}
 help("ols_step_forward_p")
-k2<-ols_step_forward_p(model, pent=0.1, prem=0.15, details = FALSE)
+k2<-ols_step_forward_p(model, pent=0.1, prem=0.15, details = TRUE)
 plot(k2)
 ```
 

@@ -1,0 +1,298 @@
+---
+title: "HW9-Solutions"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+## Problem 1
+###		Refer to Employee salaries data. A group of high-technology companies agreed to share employee salary information in an effort to establish salary ranges for technical positions in research and development. Data obtained for each employee included current salary (Y), a coded variable indicating highest academic degree obtained (1 = bachelor's degree, 2 = master's degree; 3 = doctoral degree), years of experience since last degree (X3), and the number of persons currently supervised (X4).  (40 pts)
+## a)	Create two indicator variables for highest degree attained: (5pts)
+## b) Regress Y on X1, X2, X3 and X4, using a first-order model and ordinary least squares, obtain the residuals. and plot them against Y ̂. What does the residual plot suggest? (5pts)
+## c)Divide the cases into two groups, placing the 33 cases with the smallest fitted values (Y_i ) into group 1 and the other 32 cases into group 2. Conduct the Brown-Forsythe test for constancy of the error variance, using α = .01. State the decision rule and conclusion? (5 pts)
+## d)Plot the absolute residuals against X3, and against X4. What do these plots suggest about the relation between the standard deviation of the error term and X3, and X4? (5pts)
+## e)Estimate the. standard deviation function by regressing the absolute residuals against X3 and X4 in first-order form, and then calculate the estimated weight for each case using equation 11.16a on the book. (5pts)
+## f)Using the estimated weights, obtain the weighted least squares fit of the regression model. Are the weighted least squares estimates of the regression coefficients similar to the ones obtained with ordinary least squares in part (b)? (5 pts)
+## g)Compare the estimated standard deviations of the weighted least squares coefficient estimates in part (f) with those for the ordinary least squares estimates in pan (b). What do you find? (5 pts)
+## h)Iterate the steps in parts (e) and (f) one more time. Is there a substantial change in the estimated regression coefficients? If so, what should you do? (10 pts)
+
+### a) 
+### _Solution: see below.
+```{r}
+library(knitr)
+Employee..Salaries <- read.csv("/cloud/project/Employee  Salaries.csv")
+Y<-Employee..Salaries$Y
+X3<-Employee..Salaries$X3
+X4<-Employee..Salaries$X4
+X1<-1*(Employee..Salaries$Degree==2)
+X2<-1*(Employee..Salaries$Degree==3)
+```
+### b) 
+### _Solution: Unequal variances, Rsquare is 86%.
+```{r}
+hw9.pr1<-lm(Y~X1+X2+X3+X4)
+summary(hw9.pr1)
+plot(hw9.pr1$fitted.values,hw9.pr1$residuals)
+```
+### c) 
+### _Solution: Ho:Error variance is constant
+###            Ha:Error variance is Not Constant. Pvalue is less than 0.01. Reject Ho. Error variance is not constant. See below.
+```{r}
+ei<-hw9.pr1$residuals
+DM<-data.frame(cbind(hw9.pr1$fitted.values,ei))
+DM.S<-DM[order(DM[,1]),]
+
+DM1<-DM.S[1:32,]
+DM2<-DM.S[33:65,]
+M1<-median(DM1[,2])
+M2<-median(DM2[,2])
+N1<-length(DM1[,2])
+N2<-length(DM2[,2])
+d1<-abs(DM1[,2]-M1)
+d2<-abs(DM2[,2]-M2)
+s2<-sqrt((var(d1)*(N1-1)+var(d2)*(N2-1))/(N1+N2-2))
+Den<- s2*sqrt(1/N1+1/N2)
+Num<- mean(d1)-mean(d2)
+T= Num/Den
+T
+2*pt(-4.442422,N1+N2-2)
+```
+### d) 
+### _Solution: Both graphs show positive relationship.
+```{r}
+par(mfrow=c(1,2))
+plot(X3,abs(hw9.pr1$residuals))
+plot(X4,abs(hw9.pr1$residuals))
+```
+### e) 
+### _Solution: See below.
+```{r}
+abs.ei<-abs(hw9.pr1$residuals)
+hw9.pr1e<-lm(abs.ei~X3+X4)
+si<-hw9.pr1e$fitted.values
+wi<-1/(si^2)
+```
+### f) 
+### _Solution: Coefficents are similar.See below.
+```{r}
+hw9.pr1f<-lm(Y~X1+X2+X3+X4,weights=wi)
+summary(hw9.pr1f)
+rbind(coef(hw9.pr1f),coef(hw9.pr1))
+```
+### g) 
+### _Solution: Standart deviations are smaller in the model built part f than part b.
+```{r}
+a1<-summary(hw9.pr1)
+a2<-summary(hw9.pr1f)
+rbind(a1$coefficients[,2],a2$coefficients[,2])
+```
+### h) 
+### _Solution: See below, the coefficents and standart deviations are changed slighly in the second iteration from the first iteration.
+```{r}
+abs.ei<-abs(hw9.pr1f$residuals)
+fe2<-lm(abs.ei~X3+X4)
+si<-fe2$fitted.values
+wi<-1/(si^2)
+hw9.pr1f1<-lm(Y~X1+X2+X3+X4,weights=wi)
+
+a1<-summary(hw9.pr1)
+a2<-summary(hw9.pr1f)
+a3<-summary(hw9.pr1f1)
+rbind(a1$coefficients[,2],a2$coefficients[,2],a3$coefficients[,2])
+rbind(coef(hw9.pr1),coef(hw9.pr1f),coef(hw9.pr1f1))
+```
+## Problem 2
+## Refer to the Weight and height. The weights and heights of twenty male 'Students in a freshman class are recorded in order to see how well weight (Y, in pounds) can be predicted from height (X, in inches). Assume that first-order regression is appropriate. (30 pts)
+## a)	Fit a simple linear regression model using ordinary least squares, and plot the data together with the fitted regression function. Also, obtain an Index plot of Cook s distance. What do these plots suggests? (5pts)
+## b)	Obtain the scaled residuals in equation 11.47 and use the Huber weight function (equation 11.44) to obtain case weights for a first iteration of IRLS robust regression. Which cases receive the smallest Huber weights? Why? (10 pts)
+## c)	Using the weights calculated in part (b), obtain the weighed least squares estimates of the regression coefficients. How do these estimates compare to those found in part (a) using ordinary least squares? (5pts)
+## d)	Continue the IRLS procedure for two more iterations. Which cases receive the smallest weights in the final iteration? How do the final IRLS robust regression estimates compare to the ordinary least squares estimates obtained in part (a)? (10 pts)
+
+### a) 
+### _Solution: Y=-193.9+5.2X, Rsquare is 38% and the model is significant. Cooks distance indicates that there is leverage data point, obs=2.Obs=3 is also an outlier from QQ plot
+```{r}
+Weight.and.Height <- read.csv("/cloud/project/Weight and Height.csv")
+hw9.pr1<-lm(Y~X,data=Weight.and.Height)
+par(mfrow=c(2,2))
+plot(hw9.pr1)
+par(mfrow=c(1,1))
+with(Weight.and.Height,plot(X,Y))
+abline(hw9.pr1)
+library(olsrr)
+ols_plot_cooksd_chart(hw9.pr1)
+```
+
+### b) 
+### _Solution:  Obs=2 has the smallest weight. Obs=3 has the second smallest weight. They are outliers and it makes to give them smaller weights.
+```{r}
+ei<-hw9.pr1$residuals
+mei<-median(ei)
+mad<-(1/0.6745)*median(abs(ei-mei))
+ui<- ei/mad
+abs.ui<-abs(ui)
+wi<-ei
+for (i in 1:20){if(abs.ui[i]<= 1.345) {wi[i]=1} else {wi[i]=1.345/abs.ui[i]}} 
+#the r function below calculates the weights as well
+#psi.huber(ui, k = 1.345, deriv = 0)
+```
+### c) 
+### _Solution:Y= -236.26+5.84X. The coefficents are slightly changed and Rsquare is inceased to 47% from 38%.
+```{r}
+hw9.pr2<-lm(Y~X,weights=wi,data=Weight.and.Height)
+summary(hw9.pr2)
+hw9.pr2$coefficients
+par(mfrow=c(2,2))
+plot(hw9.pr2)
+par(mfrow=c(1,1))
+with(Weight.and.Height,plot(X,Y))
+abline(hw9.pr2)
+ols_plot_cooksd_chart(hw9.pr2)
+```
+
+### d) 
+### _Solution: Same as part b. Obs=2 and Obs=3 have the smallest weights after 2 more iterations.
+```{r}
+#first iteration 
+library(MASS)
+ei<-hw9.pr2$residuals
+mei<-median(ei)
+mad<-(1/0.6745)*median(abs(ei-mei))
+ui<- ei/mad
+wi=psi.huber(ui, k = 1.345, deriv = 0)
+hw9.pr3<-lm(Y~X,weights=wi,data=Weight.and.Height)
+#second iteration 
+ei<-hw9.pr3$residuals
+mei<-median(ei)
+mad<-(1/0.6745)*median(abs(ei-mei))
+ui<- ei/mad
+wi=psi.huber(ui, k = 1.345, deriv = 0)
+wi
+```
+
+
+## Problem 3
+## 	Refer to the Prostate Cancer data set in Appendix C.5 and Homework 7&8. Select a random sample of 65 observations to use as the model-building data set (use set.seed(1023)). Use the remaining observations for the test data. (10 pts)
+## a)	Develop a regression tree for predicting PSA. Justify your choice of number of regions (tree size), and interpret your regression tree. Test the performance of the model on the test data. (5 pts)
+## b)	Compare the performance of your regression tree model with that of the best regression model obtained in HW7. Which model is more easily interpreted and why? (5pts)
+
+### a) 
+### _Solution: Performance on the holdout is better than the development sample. Rsquare increased to 55% from 44%.
+
+```{r}
+Prostate.Cancer <- read.csv("/cloud/project/Prostate Cancer.csv")
+set.seed(1023)
+ind <- sample(1:nrow(Prostate.Cancer), size =65)
+dev <- Prostate.Cancer[ind,]
+holdout <- Prostate.Cancer[-ind,]
+
+library(rpart)
+library(rpart.plot)
+tmod<-rpart(PSA.level~.,dev)
+rpart.plot(tmod, digits = 3)
+sse.dev<-sum((predict(tmod)-dev$PSA.level)^2)
+R2.dev<-1-sum(residuals(tmod)^2)/sum((dev$PSA.level-mean(dev$PSA.level))^2)
+res.hold<-predict(tmod,holdout)-holdout$PSA.level
+R2.hold<-1-sum(res.hold^2)/sum((holdout$PSA.level-mean(holdout$PSA.level))^2)
+cbind(R2.dev,R2.hold)
+```
+### b) 
+### _Solution: Rsquare from Tree is slightly higher than regression model (44% vs.42%).The regression model is easier to explain than tree method.Given that Rsquares are close. I would choose the regression model.
+
+```{r}
+Prostate.Cancer <- read.csv("/cloud/project/Prostate Cancer.csv")
+hw9.pr3<-lm(PSA.level~Cancer.volume+Capsular.penetration,data=Prostate.Cancer)
+summary(hw9.pr3)
+anova(hw9.pr3)
+R2.reg<-0.4165
+data.frame(cbind(R2.reg,R2.dev))
+```
+
+
+
+## Problem 4
+###	Refer to Cement composition. The variables collected were the amount of tricalcium aluminate (X1), the amount of tricalcium silicate (X2), the amount of tetracalcium alumino ferrite (X3), the amount of dicalcium silicate (X4), and the heat evolved in calories per gram of cement (Y). (20pts)
+
+###	a)Fit regression model for four predictor variables to the data. State the estimated regression function.  (5pts)
+###	b)Obtain the estimated ridge standardized regression coefficients, variance inflation factors, and R2 for the following biasing constants: c = .000, .002, .004, .006, .008, .02, .04, .06,.08, .10. Suggest a reasonable value for the biasing constant c based on the ridge trace, VIF values, and R2 values.(5pts) 
+###	c)Transform the estimated standardized ridge regression coefficients selected in part (b) to the original variables and obtain the fitted values for the 13 cases. How similar are these fitted values to those obtained with the ordinary least squares fit ill part (a)? (5pts)
+###	d)Fit Lasso and Elastic Net models and compare it against the Ridge regression model results. (5pts)
+
+### a) 
+### _Solution: Y= 62.41+1.55*X1+0.51*X2+0.10*X3-0.14*X4. No variable is significant and Rsquare us 98%. There is a strong multicollinearity in the data(VIF>10). X2 and X4; X1 and X3 are highly correlated.
+```{r}
+Cement.Composition <- read.csv("/cloud/project/Cement Composition.csv")
+hw9.pr4<-lm(Y~X1+X2+X3+X4,data=Cement.Composition)
+summary(hw9.pr4)
+round(hw9.pr4$coefficients,2)
+library(faraway)
+vif(hw9.pr4)
+round(cor(Cement.Composition),2)
+```
+### b)
+### _Solution:_ Choice of c or lamda is subjective. C wit the lowest cross validation error was selected. However, you could choose any point between 0.10 and 0.32 as VIF<10.
+
+```{r}
+library(MASS)
+lmd<-seq(0,1,by=0.01)
+rgmod <- lm.ridge(Y~X1+X2+X3+X4,data=Cement.Composition, lambda =lmd)
+
+plot(rgmod)
+which.min(rgmod$GCV)
+abline(v=0.32)
+# get the VIFs
+library(genridge)
+X<-model.matrix(hw9.pr4)[,-1]
+Y<-Cement.Composition$Y
+f1<-ridge(Y, X, lambda=lmd)
+v<-vif.ridge(f1)
+#R Squares
+SSE<- 8*f1$mse
+SST<-(12)*var(Y)
+RSquare<- (1-SSE/SST)
+cbind(lmd,v,RSquare)
+t(rgmod$coef)["0.32",]
+
+```
+
+### c)
+### _Solution: Y=84.7444062+1.2571960*X1+0.2910916*X2-0.1740310*X3-0.3556972*X4, see below for the fitted values, and errors.
+
+```{r}
+#orgignal coefficents
+coef(rgmod)["0.32",]  
+ypred <- model.matrix(hw9.pr4) %*% coef(rgmod)["0.32",]
+ei.ridge<-ypred-Y
+round(cbind(ypred,Y,ei.ridge),2)
+```
+### d)
+### _Solution:_ Lasso has the lowest SSE with 48.36, Use Lasso.
+
+```{r}
+library(glmnet)
+
+fit.lasso1 <- cv.glmnet(X,Y, standardize=TRUE,alpha=1)
+fit.elnet1 <- cv.glmnet(X,Y, standardize=TRUE,alpha=.5)
+
+par(mfrow=c(1,2))
+plot(fit.lasso1, main="lasso")
+plot(fit.elnet1, main="elastic")
+
+#best lamda
+fit.lasso1$lambda.min
+fit.elnet1$lambda.min
+
+coef(fit.lasso1, s = "lambda.min")
+coef(fit.elnet1, s = "lambda.min")
+
+ei.lasso<-predict(fit.lasso1, newx = X, s = "lambda.min")-Y
+ei.net<-predict(fit.elnet1, newx = X, s = "lambda.min")-Y
+
+sse.lasso<-sum(ei.lasso^2)
+sse.net<-sum(ei.net^2)
+sse.ridge<-sum(ei.ridge^2)
+data.frame(cbind(sse.lasso,sse.net,sse.ridge))
+```
+
+
+
+

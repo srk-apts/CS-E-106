@@ -1,0 +1,146 @@
+---
+title: "HW10-Solutions"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+## Problem 1
+###	Refer to the Prostate Cancer data set in Appendix C.5 and Homework 9. Select a random sample of 65 observations to use as the model-building data set (use set.seed(1023)). Use the remaining observations for the test data. (10 pts)
+###a)	Develop a neural network model for predicting PSA. Justify your choice of number of hidden nodes and interpret your model. Test the model performance on the test data. 
+###b)	Compare the performance of your neuron network model with regression tree model obtained in HW9. Which model is more easily interpreted and why? (5pts)
+###c)	Compare the performance of your neural network model with that of the best regression model obtained in homework 8. Which model is more easily interpreted and why?
+
+
+### a) 
+### _Solution: We tried single layer NN model and run a simulations with different number of hidden notes. NN with 8 hidden is the best model. The model performance was bad on the hold out samplem, indicating overfit problem on the development sample. 
+```{r}
+library(knitr)
+library(neuralnet)
+Prostate.Cancer <- read.csv("/cloud/project/Prostate Cancer.csv")
+n<-dim(Prostate.Cancer)[1]
+set.seed(1023)
+sample.ind <- sample(1:n, size = 65)
+dev.sample <- Prostate.Cancer[sample.ind,]
+holdout.sample <- Prostate.Cancer[-sample.ind,]
+
+pop<-dev.sample
+max = apply(pop, 2 , max)
+min = apply(pop, 2 , min)
+scaled = as.data.frame(scale(pop, center = min, scale = max - min))
+
+max = apply(holdout.sample, 2 , max)
+min = apply(holdout.sample, 2 , min)
+scaled.holdout.sample = as.data.frame(scale(holdout.sample, center = min, scale = max - min))
+
+### Function for simulation ####
+NN.SIM.FUNC<-function(n){
+out<-matrix(0,ncol=2,nrow=n)
+for (i in 1:n){
+NN = neuralnet(PSA.level~Cancer.volume+Weight+Age+Benign.prostatic.hyperplasia+Seminal.vesicle.invasion+Capsular.penetration+Gleason.score, scaled , hidden = i , linear.output = T)
+predict_testNN = compute(NN, scaled [,c(2:8)])
+predict_testNN1 = (predict_testNN$net.result * (max(pop$PSA.level) - min(pop$PSA.level))) + min(pop$PSA.level)
+SSE.NN<-sum((pop$PSA.level-predict_testNN1)^2)
+out[i,]<-cbind(i,SSE.NN)
+}
+out
+}
+NN.SIM.FUNC(10)
+#### End Simulations
+
+NN = neuralnet(PSA.level~Cancer.volume+Weight+Age+Benign.prostatic.hyperplasia+Seminal.vesicle.invasion+Capsular.penetration+Gleason.score, scaled , hidden = 8 , linear.output = T)
+
+predict_testNN = compute(NN, scaled.holdout.sample[,c(2:8)])
+predict_testNN1 = (predict_testNN$net.result * (max(holdout.sample$PSA.level) - min(holdout.sample$PSA.level))) + min(holdout.sample$PSA.level)
+SSE.NN<-sum((holdout.sample$PSA.level-predict_testNN1)^2)
+
+```
+### b) On the development sample, NN performs much better than the tree model. However, on the hold out sample, the performance is bad. 
+
+```{r}
+library(rpart)
+library(rpart.plot)
+tmod<-rpart(PSA.level~.,dev.sample)
+rpart.plot(tmod, digits = 3)
+sse.tree<-sum((predict(tmod)-dev.sample$PSA.level)^2)
+sse.tree
+
+sse.tree.holdout<-sum((predict(tmod,holdout.sample)-holdout.sample$PSA.level)^2)
+sse.tree.holdout
+```
+
+### c) On the development sample, NN performs much better than the best subset model. However, on the hold out sample, the performance is bad. The best subset model's performance is stable on the development and holdout sample.
+
+```{r}
+f.q1.bestsubset<-lm(PSA.level~Cancer.volume+Capsular.penetration,data=Prostate.Cancer)
+anova(f.q1.bestsubset)
+ei<-predict(f.q1.bestsubset,holdout.sample)-holdout.sample$PSA.level
+SSE.holdout<- sum(ei^2)
+SSE.holdout
+```
+
+## Problem 2
+## 2-	Refer to the Disease outbreak data set in Appendix C.10. Savings account status is the response variable and age, socioeconomic status, and city sector are the predictor variables.
+##a)	Fit logistic regression model to predict the saving account status on the predictor variables in first-order terms and interaction terms for. all pairs of predictor variables. State the fitted response function. 
+##b)	Use the likelihood ratio test to determine whether all interaction terms can be dropped from the regression model; use α = .01. State the alternatives, full and reduced models, decision rule, and conclusion. What is the approximate P-value of the test?
+##c)	Conduct the Hosmer-Lemeshow goodness of fit test for the appropriateness of the logistic regression function by forming five groups of approximately 20 cases each; use α = .05.
+
+
+### a) 
+### _Solution: It is logistic regression function, please see below.
+```{r}
+Disease.Outbreak <- read.csv("/cloud/project/Disease Outbreak.csv")
+Y=Disease.Outbreak$Savings.account.status
+X1=Disease.Outbreak$Age
+X2=(Disease.Outbreak$Socioeconomic.status==2)*1
+X3=(Disease.Outbreak$Socioeconomic.status==3)*1
+X4=(Disease.Outbreak$Sector==2)*1
+X5=Disease.Outbreak$Disease.status
+lmod <- glm(Y ~ (X1+X2+X3+X4+X5)^2, family = binomial)
+summary(lmod)
+```
+
+### b) 
+### _Solution: They can be dropped.
+```{r}
+lmodc <- glm(Y ~ X1+X2+X3+X4+X5, family = binomial)
+anova(lmodc,lmod,test="Chi")
+```
+### c) 
+### _Solution:Fit is good.
+```{r}
+library(ResourceSelection)
+hoslem.test(lmod$y,fitted(lmod),g=5)
+```
+## Problem 3
+## Refer to the Geriatric study. A researcher in geriatrics designed a prospective study to investigate the effects of two interventions on the frequency of falls. One hundred subjects were randomly assigned to one of the two interventions: education only (X1 = 0) and education plus aerobic exercise training (X1 = 1). Subjects were at least 65 years of age and in reasonably good health. Three variables considered to be important as control variables were gender (X2:0=female;1=male), a balance index (X3). and a strength index (X4). The higher balance index, the more stable is the subject and the higher the strength index, the stronger is the subject. Each subject kept a diary recording the number of falls (Y) during the six months of the study.
+##a)	Fit the regression model. State the estimated regression coefficients, their estimated standard deviations. and the estimated response function.
+##b)	Assuming that the fitted model is appropriate, use the likelihood ratio test to determine whether gender (X2) can be dropped from the model: State the full and reduced models. decision rule. and conclusion. What is the P-value of the test
+##c)Predicted the number of falls for X1=1, X2=0, X3=45, X4=70.
+
+
+### a) 
+### _Solution: All variables except X2 are significant. Please see below for the poisson regression model.
+
+```{r}
+Geriatric.Study <- read.csv("/cloud/project/Geriatric Study.csv")
+lpos<-glm(Y~.,data=Geriatric.Study,family="poisson")
+summary(lpos)
+```
+
+### b) 
+### _Solution: yes, it can be dropped.
+
+```{r}
+lposc <- glm(Y ~ X1+X3+X4,data=Geriatric.Study,family="poisson")
+anova(lposc,lpos,test="Chi")
+```
+### c) 
+### _Solution: The number of falls is predicted to be 0.4 or 0.
+
+```{r}
+dat<-data.frame(cbind(X1=1, X2=0, X3=45, X4=70))
+predict(lpos,dat)
+```
+
+

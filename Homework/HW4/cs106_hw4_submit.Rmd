@@ -251,8 +251,8 @@ print(n1)
 n2 = nrow(df2)
 print(n2)
 
-d1 = abs(df1[,3]+med1)
-d2 = abs(df2[,3]+med2)
+d1 = abs(df1[,3]-med1)
+d2 = abs(df2[,3]-med2)
 
 #calculate means for our answer 
 mean_d1 = mean(d1)
@@ -260,7 +260,7 @@ print(mean_d1)
 mean_d2 = mean(d2)
 print(mean_d2)
 
-s2 = (var(d1)*(n1-1)+var(d2)*(n2-1))/(120-2)
+s2 = (var(d1)*(n1-1)+var(d2)*(n2-1))/(n1+n2-2)
 print(s2)
 
 #calculate s
@@ -344,7 +344,7 @@ Decision Rule:
 Result:
 Since $0.005045017 \leq 3.841459$ i.e. $chiTest \leq \chi^{2}(1-\alpha,1)$, we conclude $H_{0}$. The error variance is constant.
 
-**This conclusion is inconsistent with the conclusions in part(a) and part(b) (using 69 as the dividing criteria).**
+**This conclusion is inconsistent with the conclusions in part(a) and part(b) (using 69 as median).**
 
 
 **Solution 4:**
@@ -434,6 +434,7 @@ print(B)
 print(S)
 
 ```
+
 
 *Interpretation:*
 
