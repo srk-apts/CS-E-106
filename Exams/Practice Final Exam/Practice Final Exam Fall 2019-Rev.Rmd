@@ -1,0 +1,261 @@
+---
+title: "Practice Final Exam Fall 2019"
+output:
+  html_document: default
+  pdf_document: default
+  word_document: default
+---
+
+## Question 1 
+
+#The director of admissions at a state university wished to determine how accurately students' grade-point averages at the end of their freshman year (Y);
+
+#X1= the high school class rank as percentile where 99 indicates student is at or near the top of his or her class and 1 indicates student is at or near the bottom of the class
+#X2= ACT score
+#X3= Academic Year
+
+#a-) Create a development sample (70% of the data) and hold-out sample (%30) of the data, build your regression model on the development data, check the regression for the followings:  normality, outliers and influential points, and multi collinearity document all your work and attach relevant r graphs._
+ 
+#b-) Test the performance of the model on the hold out sample, and investigate the model stability on the hold out sample?_ 
+
+#c-) Divide the cases into two groups, placing 247 cases with the smallest fitted values (Y_i ) into group 1 and the reamining cases into group 2. Conduct the Brown-Forsythe test for constancy of the error variance, using α = .01. State the decision rule and conclusion._
+
+_Solutions:_
+#Part a: 
+#Y= -14.691 + 0.009X1+0.037X2+0.008X3. R square is 19%. X1 and X2 are significant. while X3 is not significant. QQ looks normal with constant variance. The cooks distance graph does not indicate that there are influential or outliers. No outliers in Y or Xs.VIFs <10, no multi collinearity exists.
+
+```{r q1a}
+set.seed(1234)
+Admission.Data <- read.csv("/cloud/project/Admission Data.csv")
+n<-dim(Admission.Data)[1]
+sample.ind <- sample(1:n, size = round(n*0.7))
+dev.sample <- Admission.Data[sample.ind,]
+holdout.sample <- Admission.Data[-sample.ind,]
+f.q1<-lm(Y~X1+X2+X3,data=dev.sample)
+summary(f.q1)
+par(mfrow=c(2,2))
+plot(f.q1)
+library(faraway)
+vif(f.q1)
+library(olsrr)
+influence.measures(f.q1)
+ols_plot_cooksd_chart(f.q1)
+ols_plot_resid_stud(f.q1)
+#large data set, 2p/n is small
+#outliers in Xs
+hii <- hatvalues(f.q1)
+hii
+sum(hii>(0.5))
+sum(hii>(0.2))
+```
+#Part b: 
+#R Square is increased in the hold out sample (23% vs. 19%). X1 and X2 are significant, X3 is not signficant in both models. The coefficents have the same signs, the signficant variables' coefficents are close to each other. The model is stable.
+#     (Intercept)    X1    X2    X3
+#[1,]     -14.691 0.009 0.037 0.008
+#[2,]     -38.209 0.012 0.036 0.020
+```{r q1b}
+pred<-predict(f.q1,holdout.sample)
+sse<-sum((holdout.sample$Y-pred)^2)
+sst=var(holdout.sample$Y)*(dim(holdout.sample)[1]-1)
+R2.hold=1 - sse/sst
+R2.hold
+R2.dev=0.1903
+cbind(R2.dev,R2.hold)
+f.q12<-lm(Y~X1+X2+X3,data=holdout.sample)
+summary(f.q12)
+round(rbind(f.q1$coefficients,f.q12$coefficients),3)
+```
+#Part c:
+#Ho:Error variance is constant
+#Ha:Error variance is Not Constant. P value is greater than 0.01. Accept Ho. Error variance is constant. 
+
+```{r q1c}
+ei<-f.q1$residuals
+DM<-data.frame(cbind(f.q1$fitted.values,ei))
+DM.S<-DM[order(DM[,1]),]
+DM1<-DM.S[1:247,]
+DM2<-DM.S[248:493,]
+M1<-median(DM1[,2])
+M2<-median(DM2[,2])
+N1<-length(DM1[,2])
+N2<-length(DM2[,2])
+d1<-abs(DM1[,2]-M1)
+d2<-abs(DM2[,2]-M2)
+s2<-sqrt((var(d1)*(N1-1)+var(d2)*(N2-1))/(N1+N2-2))
+Den<- s2*sqrt(1/N1+1/N2)
+Num<- mean(d1)-mean(d2)
+T= Num/Den
+T
+2*(1-pt(T,N1+N2-2))
+```
+## Question 2
+
+#We are interested in predicting the number of customers who complained about the service, use the attached data sets to answer the questions below:
+
+#a)	Build a model to predict the number of complaints, perform the statistical tests that shows that model is significant
+#b)	Find the predicted number complaints given the independent variables below 
+#X1	X2	X3	X4	X5
+#606	41393	3	3.04	6.32
+
+#Solutions:
+_a-) The model is signficant. Based on the Deviance and LRT tests._
+
+```{r q2a}
+Complaints <- read.csv("/cloud/project/Complaints.csv")
+f.q2<-glm(Y~.,data=Complaints,family="poisson")
+summary(f.q2)
+1-pchisq(422.22-114.99,5)
+beta <- coef(f.q2)
+beta
+anova(f.q2,test="Chisq")
+nothing <- glm(Y ~ 1,family="poisson",Complaints)
+anova(nothing,f.q2,test="Chi")
+```
+
+_b-) The predicted count is 12.3 or 12._
+
+```{r q2b}
+dat=data.frame(cbind(X1=606,X2=41393,X3=3,X4=3.04,X5=6.32))
+predict(f.q2,dat,type="response")
+
+```
+
+## Question 3
+
+#For the attached data sets, build a model to predict Y based on the independent variables and test if there is an autocorrelation persists in the data. If autocorrelation persists, remediate the autocorrelation.
+
+#Solution: R square is 77%. X3,X4 and X5 are signficant. There is no autocorrelation based on the DW test. However, unequal variances should be further tested and the observation 18 could be an influential point. 
+```{r q3}
+library(lmtest)
+Monthly.Sales <- read.csv("/cloud/project/Monthly Sales.csv")
+f.q3<-lm(formula = Y ~ ., data = Monthly.Sales)
+summary(f.q3)
+dwtest(f.q3)
+round(f.q3$coefficients,2)
+par(mfrow=c(2,2))
+plot(f.q3)
+library(olsrr)
+ols_plot_cooksd_bar(f.q3)
+```
+## Question 4
+
+#For the following hospital data, 
+#Y= Total cost
+#X1=Interventions
+#X2=Drugs
+#X3=Emergency room visits
+#X4=Complications
+#X5=Comorbidities
+#a-) use the best subset method to find optimal linear regression model
+#b) Compare your model in part a against the regression tree and Neural Network Model, and calculate the SSE for each model, which method has the lowest SSE?
+
+#Part a: The best subset model contains, X1,X2 and X3 and are all significant. The R Square is 54%.However, there is an unequal variances proble, QQ plot indicates S shape, heavy tail, transformation of Y needed.
+
+```{r 4qa}
+library(rpart)
+library(rpart.plot)
+library(neuralnet)
+library(olsrr)
+library(leaps)
+Hospital <- read.csv("/cloud/project/Hospital.csv")
+f.q4.reg<-lm(Y~.,data=Hospital)
+summary(f.q4.reg)
+#Best Subset Regression
+k4<-ols_step_best_subset(f.q4.reg,prem=0.05,details=TRUE)
+plot(k4)
+#based on AIC and SBIC, the best subset model is "X1 X2 X3 X5". However, X5 is not significant. Use X1 X2 X3, as the AIC and SBIC are close to eac other.
+
+f.q4.bestsubset<-lm(Y~X1+X2+X3,data=Hospital)
+summary(f.q4.bestsubset)
+par(mfrow=c(2,2))
+plot(f.q4.bestsubset)
+#alternatively
+#b <- regsubsets(Y~X1+X2+X3+X4+X5,data=Hospital)
+#rs <- summary(b)
+#AIC <- 788*log(rs$rss/788) + (2:6)*2
+#par(mfrow=c(1,3))
+#plot(AIC ~ I(1:5), ylab="AIC", xlab="Number of Predictors")
+#plot(1:5,rs$adjr2,xlab="No. of Parameters",ylab="Adjusted R-square")
+#which.max(rs$adjr2)
+#plot(1:5,rs$cp,xlab="No. of Parameters",ylab="Cp Statistic")
+#abline(0,1)
+
+anova(f.q4.bestsubset)
+an=anova(f.q4.bestsubset)
+SSE.bestsubset=an$`Sum Sq`[4]
+
+```
+#Part b: Neural Network Model has the lowest SSE, perform better than other two models. However, it is less transparent than the other models.
+
+```{r 4qb}
+
+r.q4.tree<-rpart(Y~.,data=Hospital)
+plot(r.q4.tree)
+pop<-Hospital 
+SSE.Tree<-sum((predict(r.q4.tree)-pop$Y)^2)
+
+max = apply(pop, 2 , max)
+min = apply(pop, 2 , min)
+scaled = as.data.frame(scale(pop, center = min, scale = max - min))
+NN = neuralnet(Y~X1+X2+X3+X4+X5, scaled , hidden = 6 , linear.output = T )
+
+predict_testNN = compute(NN, scaled [,c(2:6)])
+predict_testNN1 = (predict_testNN$net.result * (max(pop$Y) - min(pop$Y))) + min(pop$Y)
+SSE.NN<-sum((pop$Y-predict_testNN1)^2)
+
+round(data.frame(cbind(SSE.bestsubset,SSE.Tree,SSE.NN)),0)
+
+```
+## Question 5
+
+#In a flu shot study, 159 clients were randomly selected and asked whether they actually received a flu shot. A client who received a flu shot was coded Y=1 and a client who did not receive a flu shot was coded Y =0. In addition. data were collected on their age (X1) and their health awareness. The latter data were combined into a health awareness index (X2), for which higher values indicate greater awareness. Also included in the data was client gender, where males were coded X3=1 and females were coded X3=0.
+#a)	Fit a model to predict the probability of getting a flu shot and state the fitted response function.
+#b)	Use the likelihood ratio test to determine whether X3 can be dropped from the regression model
+#c)	What is the estimated probability that male clients aged 55 with a health awareness index of 60 will receive a flu shot? Obtain a 90% confidence interval for your prediction
+#d)	Conduct Hosmer-Lemshow goodness of fit test for the appropriateness of the logistic regression function
+
+
+#Part a: b0 = -1.17, b1 = 0.07, b2 = 0.09, b3 = 0.43
+#pi=[1+exp(-1.17+ 0.07X1+0.09X2+0.43X3)]^{-1}. X1 and X2 are significant.
+```{r q5a}
+Flue.Shot <- read.csv("/cloud/project/Flue Shot.csv")
+lmod <- glm(Y ~ X1 + X2 + X3, family = binomial, Flue.Shot)
+summary(lmod)
+beta <- coef(lmod)
+cbind(beta,exp(beta))
+```
+
+_b-)Yes. It can be dropped from the model_
+
+```{r q5b}
+lmodc<-glm(Y ~ X1 + X2 , family = binomial, Flue.Shot)
+anova(lmodc,lmod,test="Chi")
+
+```
+
+
+#Part c-) The probability of receiving a flue shot is 0.0642. The 95% CI
+# ilogit(results)
+#    LowerCL Prediction   UpperCL
+# 0.0246986 0.06422395 0.1568308
+
+```{r q5c}
+library(faraway)
+dat<-data.frame(cbind(X1=55,X2=60,X3=1))
+pre1=predict(lmod,dat,type="link",se.fit=T)
+LowerCL = pre1$fit-1.96*pre1$se.fit; UpperCL = pre1$fit+1.96*pre1$se.fit
+Prediction = pre1$fit
+results = round(cbind(LowerCL,Prediction,UpperCL),3)
+ilogit(results)
+
+
+```
+
+
+_d-) Ho: The model is good fit; Ha: Model is not a good fit. Accept Null,P value>0.05. The model is a good fit._
+
+```{r}
+library(ResourceSelection)
+hoslem.test(lmod$y,fitted(lmod),g=5)
+```
+

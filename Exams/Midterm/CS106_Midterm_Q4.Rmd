@@ -1,0 +1,102 @@
+---
+title: 'CS-E-106: Data Modeling - Midterm Exam'
+subtitle: '**Question 4**'
+date: '**Due Date:** 10/21/2019'
+author:
+  - '**Instructor: Hakan Gogtas**'
+  - '**Submitted by:** Saurabh Kulkarni'
+output:
+  pdf_document: 
+    latex_engine: xelatex
+---
+
+
+**Solution 4:**
+
+```{r}
+q4_data = read.csv("question4.csv")
+lm_q4 = lm(Y~X, data=q4_data)
+summary(lm_q4)
+
+```
+
+The regression function: $Y = 156.3466 + 1.1900*X$
+
+```{r}
+build_residual_qq(lm=lm_q4, df=q4_data, rse=8.173)
+```
+
+
+*Interpretation:*
+
+*Fitted vs. Residual Plot:* The residual plot appears to be equally spread and has no distinct patterns and no visible extreme outliers. We can say that there is mostly a contant variance in the error term.
+
+*Normal Probability Plot:* The plot is mostly linear, which means that the error is in agreement with the normality.
+
+
+**(B)**
+
+*Breusch-Pagan Test*
+
+Null Hypothesis: $H_{0}$: Error variance is constant
+Alternate Hypothesis: $H_{1}$: Error variance is not constant
+
+```{r}
+ei = lm_q4$residuals
+ei2 = ei^2
+f = lm(ei2~q4_data$X)
+summary(f)
+
+#to find SSE(R) and SSR(R)
+anova(f)
+
+#to find SSE(F) and SSR(F)
+anova(lm_q4)
+```
+
+
+```{r}
+SSR_R = 31833 
+SSE_R = 400089 
+
+SSR_F = 11627.5
+SSE_F= 3874.4
+
+n = nrow(q4_data)
+
+#chi-squared: [SSR(R)/2] / [SSE(F)/n]^2  
+chiTest = (SSR_R/2) / ((SSE_F/n))^2
+print(chiTest)
+
+
+#p 
+chi = qchisq(1-0.05,1)
+print(chi)
+
+```
+
+Decision Rule:
+
+- If $chiTest \leq \chi^{2}(1-\alpha,1)$, conclude $H_{0}$: constant error variance
+
+- If $chiTest > \chi^{2}(1-\alpha,1)$, conclude $H_{1}$: non-constant error variance 
+
+
+Result:
+Since $3.817167 \leq 3.841459$ i.e. $chiTest \leq \chi^{2}(1-\alpha,1)$, we conclude $H_{0}$. The error variance is constant.
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+

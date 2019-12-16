@@ -1,0 +1,103 @@
+---
+title: 'CS-E-106: Data Modeling - Midterm Exam'
+subtitle: '**Question 3**'
+date: '**Due Date:** 10/21/2019'
+author:
+  - '**Instructor: Hakan Gogtas**'
+  - '**Submitted by:** Saurabh Kulkarni'
+output:
+  pdf_document: 
+    latex_engine: xelatex
+---
+
+
+**Solution 3:**
+
+**(A)**
+
+```{r}
+q2_data = read.csv("question2.csv")
+
+```
+
+
+```{r}
+set.seed(1023)
+train_ind = sample(1:nrow(q2_data), 0.7 * nrow(q2_data))
+test_ind = setdiff(1:nrow(q2_data), train_ind)
+train_df = q2_data[train_ind,]
+test_df = q2_data[test_ind,]
+
+```
+
+**(B)**
+
+```{r}
+lm_q3_tr = lm(y~x, data=train_df)
+summary(lm_q3_tr)
+```
+
+Regression Function on development sample: $y = 1257.562 + 47.030*x$
+
+
+```{r}
+build_residual_qq(lm=lm_q3_tr, df=train_df, rse=1398)
+
+```
+
+
+```{r}
+plot(lm_q3_tr)
+```
+
+
+*Interpretation:*
+
+Both plots are very similar to the plots obtained in Q2.A, with similar interpretaions.
+
+*Fitted vs. Residual Plot:* The residual plot appears to be mostly equally spread and has no distinct patterns. We do see a few outliers. We can say that there is mostly a contant variance in the error term.
+
+*Normal Probability Plot:* The plot is not linear, which means that the error is not in agreement with the normality. 
+
+
+**(C)**
+
+```{r}
+yi = test_df$y
+yBar = mean(test_df$y)
+yHat = predict(lm_q3_tr, test_df)
+resids = yi-yHat
+SSE = sum(resids^2)
+SST = sum((yi-yBar)^2)
+
+R2 = 1 - SSE/SST
+
+print(paste("R-squared on hold-out sample:",R2))
+
+```
+
+
+```{r}
+
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+

@@ -1,0 +1,316 @@
+---
+title: '**CS-E-106: Data Modeling**'
+subtitle: '**Final Exam**'
+date: '**Due Date:** 12/17/2019'
+author:
+  - '**Instructor: Hakan Gogtas**'
+  - '**Submitted by:** Saurabh Kulkarni'
+output: 
+  pdf_document: 
+    latex_engine: xelatex
+---
+
+
+**Libraries**
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(tidy.opts=list(width.cutoff=80), 
+                      fig.width=10, fig.height=5)
+
+loadLib = function(libName)
+{
+    if(require(libName, character.only=TRUE))
+    {
+        cat(libName, "loaded properly\n")
+    } else {
+        cat("Installing", libName, "\n")
+        install.packages(libName)
+        if(require(libName, character.only=TRUE))
+        {
+            cat(libName, "loaded properly\n")
+        } else {
+            stop(c(libName, "not properly installed\n"))
+        }
+    }
+}
+
+libs = c("ggplot2", "knitr", "MASS", "ggcorrplot", "GGally", "alr3", "faraway",
+         "lattice", "dplyr", "ALSM", "leaps", "olsrr", "qpcR", "rpart",
+         "rpart.plot", "lmtest", "glmnet", "lars", "C50", "graphics", "gmodels",
+         "randomForest", "glmnet", "genridge", "neuralnet", "ResourceSelection")
+
+for (lib in libs)
+{
+    loadLib(lib)
+}
+
+```
+
+**Neural Network (with scaling)**
+
+```{r}
+prostate_data = read.csv("Prostate Cancer.csv")
+summary(prostate_data)
+```
+
+
+```{r}
+#Train-Test Random Sampling
+set.seed(1023)
+train_ind = sample(1:nrow(scaled_df), 65)
+test_ind = setdiff(1:nrow(scaled_df), train_ind)
+train_df = scaled_df[train_ind,]
+test_df = scaled_df[test_ind,]
+
+```
+
+```{r}
+#Scale training data
+max = apply(train_df, 2, max)
+min = apply(train_df, 2, min)
+scaled_train_df = as.data.frame(scale(train_df, center=min, scale=max-min))
+
+#Scale test data
+max = apply(test_df, 2, max)
+min = apply(test_df, 2, min)
+scaled_test_df = as.data.frame(scale(test_df, center=min, scale=max-min))
+
+```
+
+```{r}
+NN = neuralnet(PSA.level ~ ., data=scaled_train_df, hidden=7 , linear.output= T, stepmax=1e6)
+plot(NN)
+```
+
+
+
+**Brown-Forsythe Test**
+
+Null Hypothesis: $H_{0}$: Error variance is constant
+Alternate Hypothesis: $H_{1}$: Error variance is not constant
+
+```{r}
+#set code variables
+model = f.q1
+ei = model$residuals
+yHat = model$fitted.values
+df = data.frame(cbind(ei, yHat))
+df = df[order(yHat),]
+```
+
+
+```{r}
+#conduct test
+df1 = df[1:247,]
+df2 = df[248:nrow(df),]
+
+med1 = median(df1[["ei"]])
+med2 = median(df2[["ei"]])
+
+#n1
+n1 = nrow(df1)
+print(n1)
+
+#n2
+n2 = nrow(df2)
+print(n2)
+
+d1 = abs(df1[["ei"]]-med1)
+d2 = abs(df2[["ei"]]-med2)
+
+#calculate means for our answer 
+mean_d1 = mean(d1)
+print(mean_d1)
+mean_d2 = mean(d2)
+print(mean_d2)
+
+s2 = (var(d1)*(n1-1)+var(d2)*(n2-1))/(n1+n2-2)
+print(s2)
+
+#calculate s
+s = sqrt(s2)
+print(s)
+
+#testStastic = (mean.d1 - mean.d2) / (s * sqrt((1/n1)+1/n2)
+testStastic = (mean_d1-mean_d2)/(s*sqrt((1/n1)+(1/n2)))  
+print(testStastic)
+
+#p-value (note: subtract from 1 for lower-tailed)
+2*(1-pt(testStastic, model$df.residual))
+
+t = qt(1-0.01, model$df.residual) 
+print(t)
+
+```
+
+
+*Decision Rule:*
+
+- If $|testStatistic| \leq t(1-\alpha/2,n-2)$, conclude $H_{0}$: constant error variance
+
+- If $|testStatistic| > t(1-\alpha/2,n-2)$, conclude $H_{1}$: non-constant error variance 
+
+
+*Result:*
+
+Since $|1.134514|\leq 2.333998$ i.e. $|testStatistic| leq t(1-\alpha/2,n-2)$, we conclude $H_{0}$. The error variance is constant and thus does not vary with X.
+
+
+**Breusch-Pagan Test**
+
+Null Hypothesis: $H_{0}$: Error variance is constant
+Alternate Hypothesis: $H_{1}$: Error variance is not constant
+
+```{r}
+ei2 = ei^2
+f = lm(ei2~crime_data$X)
+summary(f)
+
+#to find SSE(R) and SSR(R)
+anova(f)
+
+#to find SSE(F) and SSR(F)
+anova(lm_crime)
+
+```
+
+
+```{r}
+
+SSR_R = 2.9640e+11 
+SSE_R = 4.0843e+15 
+
+SSR_F = 93462942
+SSE_F= 455273165
+
+n = nrow(crime_data)
+
+#chi-squared: [SSR(R)/2] / [SSE(F)/n]^2  
+chiTest = (SSR_R/2) / ((SSE_F/n))^2
+print(chiTest)
+
+
+#p 
+chi = qchisq(1-0.05,1)
+print(chi)
+
+```
+
+
+Decision Rule:
+
+- If $chiTest \leq \chi^{2}(1-\alpha,1)$, conclude $H_{0}$: constant error variance
+
+- If $chiTest > \chi^{2}(1-\alpha,1)$, conclude $H_{1}$: non-constant error variance 
+
+
+Result:
+Since $0.005045017 \leq 3.841459$ i.e. $chiTest \leq \chi^{2}(1-\alpha,1)$, we conclude $H_{0}$. The error variance is constant.
+
+
+
+**Hat values**
+
+```{r}
+#outliers in Xs
+model = f.q1
+df = train_df
+n = nrow(train_df)
+p = length(model$coefficients)
+hii = hatvalues(model)
+index = hii>2*p/n
+print("Hat values outliers")
+index[index]
+```
+
+
+**Function Build Normal Porbability Plot:**
+
+
+```{r}
+build_residual_qq <- function(lm, df, rse){
+  ei = lm$residuals
+  fitted_values = lm$fitted.values
+  
+  par(mfrow=c(1,1))
+  plot(fitted_values, ei, xlab="Fitted Values", ylab="Residuals")
+  title(main="Fitted Values vs. Residuals")
+  
+  
+  ri = rank(ei)
+  n = nrow(df)
+  zr = (ri-0.375)/(n+0.25)
+  
+  #residual standard error from summary(lm) above
+  zr1 = rse*qnorm(zr)
+  
+  print(cor.test(zr1, ei))
+  
+  plot(zr1, ei, xlab="Expected Value under Normality",ylab="Residuals")
+  title(main="Normal Probability Plot")
+    
+}
+```
+
+
+*Bonferroni Outlier Test:*
+
+Test value = $t(1-\alpha/2n; n-p-1)$
+
+$H_0:$ No outlier
+$H_1:$ Atleast one outlier
+
+```{r}
+model = lm_lung
+df = lung_data
+n = nrow(df)
+p = length(model$coefficients)
+student_del_resids = rstudent(model)
+alpha = 0.1
+tTest = qt(1-alpha/(2*n),n-p-1)
+tTest
+```
+
+
+```{r}
+any(abs(student_del_resids)>=abs(tTest))
+which(abs(student_del_resids)>=abs(tTest))
+```
+
+*Decision Rule:*
+
+- If $|t_i| \leq t(1-\alpha/2n; n-p-1)$, $n=i$ is not an outlier.
+- If $|t_i| > t(1-\alpha/2n; n-p-1)$, $n=i$ is an outlier.
+
+*Result:*
+
+We can see that $|t_i| > t(1-\alpha/2n; n-p-1)$ for case #7, we conclude $H_1$ for that case. Case #7 is an outlier.
+
+```{r}
+```
+
+
+**Auto-correlation**
+
+Refer chapter 12 codes
+
+**Weighted Least Squares Model + Ridge/Lasso/Robust Regression**
+
+Refer HW9
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+

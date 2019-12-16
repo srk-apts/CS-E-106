@@ -1,0 +1,244 @@
+---
+title: 'CS-E-106: Data Modeling - Midterm Exam'
+subtitle: '**Question 2**'
+date: '**Due Date:** 10/21/2019'
+author:
+  - '**Instructor: Hakan Gogtas**'
+  - '**Submitted by:** Saurabh Kulkarni'
+output:
+  pdf_document: 
+    latex_engine: xelatex
+---
+
+**Solution 2:**
+
+**(A)**
+
+```{r}
+q2_data = read.csv("question2.csv")
+lm_q2 = lm(y~x, data=q2_data)
+summary(lm_q2)
+```
+
+Regression Function: $y = 1201.124 + 47.549*x$
+
+```{r}
+build_residual_qq <- function(lm, df, rse){
+  ei = lm$residuals
+  fitted_values = lm$fitted.values
+  
+  par(mfrow=c(1,1))
+  plot(fitted_values, ei, xlab="Fitted Values", ylab="Residuals")
+  title(main="Fitted Values vs. Residuals")
+  
+  
+  ri = rank(ei)
+  n = nrow(df)
+  zr = (ri-0.375)/(n+0.25)
+  
+  #residual standard error from summary(lm) above
+  zr1 = rse*qnorm(zr)
+  
+  print(cor.test(zr1, ei))
+  
+  plot(zr1, ei, xlab="Expected Value under Normality",ylab="Residuals")
+  title(main="Normal Probability Plot")
+    
+}
+
+build_residual_qq(lm=lm_q2, df=q2_data, rse=1352)
+
+```
+
+
+
+*Interpretation:*
+
+*Fitted vs. Residual Plot:* The residual plot appears to be mostly equally spread and has no distinct patterns. We do see a few outliers. We can say that there is mostly a contant variance in the error term.
+
+*Normal Probability Plot:* The plot is not linear, which means that the error is not in agreement with the normality. 
+
+
+**(B)**
+
+
+**Note:** The question script only read: "Calculate the simultaneous 90% confidence interval for". Assuming we are supposed to calculate a 90% simultaneous confidence intervals for $\beta_{0}$ and $\beta_{1}$ using Bonferroni method.
+
+
+```{r}
+confint(lm_q2, level=1-0.1/2)
+```
+
+**(C)**
+
+```{r}
+Xh = data.frame(x=c(85,90))
+g = nrow(Xh)
+
+alpha = 0.1
+CI.New = predict(lm_q2, Xh, se.fit= TRUE, level = 1-alpha)
+B = qt(1 -alpha / (2*g), lm_q2$df)
+S = sqrt( g * qf( 1 -alpha, g, lm_q2$df))
+spred = sqrt( CI.New$residual.scale^2 + (CI.New$se.fit)^2 ) # (2.38)
+
+print(B)
+print(S)
+
+```
+
+*Interpretation:* We see that Bonferroni is more efficient, since it has tigher limits.
+
+
+```{r}
+pred_new_CI = t(
+rbind(
+"Xh" = array(t(Xh)),
+"s.pred" = array(spred),
+"fit" = array(CI.New$fit),
+"lower.B" = array(CI.New$fit-B * spred),
+"upper.B" = array(CI.New$fit+ B * spred))
+)
+
+pred_new_CI
+```
+
+*Double-check:*
+
+```{r}
+predict(lm_q2, Xh, se.fit= TRUE, interval = "prediction", level = 1-alpha/g)
+```
+
+**(D)**
+
+*Brown-Forsythe Test*
+
+*Note:* Assuming $\alpha = 0.05$, since not specified in part (D).
+
+Null Hypothesis: $H_{0}$: Error variance is constant
+Alternate Hypothesis: $H_{1}$: Error variance is not constant
+
+
+```{r}
+summary(q2_data$x)
+```
+
+
+```{r}
+
+ei = lm_q2$residuals
+df = data.frame(cbind(q2_data$y,q2_data$x,ei))
+df1 = df[df[,2]<=21,]
+df2 = df[df[,2]>21,]
+
+med1 = median(df1[,3])
+med2 = median(df2[,3])
+
+#n1
+n1 = nrow(df1)
+print(n1)
+
+#n2
+n2 = nrow(df2)
+print(n2)
+
+d1 = abs(df1[,3]-med1)
+d2 = abs(df2[,3]-med2)
+
+#calculate means for our answer 
+mean_d1 = mean(d1)
+print(mean_d1)
+mean_d2 = mean(d2)
+print(mean_d2)
+
+s2 = (var(d1)*(n1-1)+var(d2)*(n2-1))/(n1+n2-2)
+print(s2)
+
+#calculate s
+s = sqrt(s2)
+print(s)
+
+#testStastic = (mean.d1 - mean.d2) / (s * sqrt((1/n1)+1/n2)
+testStastic = (mean_d1-mean_d2)/(s*sqrt((1/n1)+(1/n2)))  
+print(testStastic)
+
+t = qt(1-0.05/2, lm_q2$df.residual) 
+print(t)
+
+
+```
+
+*Decision Rule:*
+
+- If $|testStatistic| \leq t(1-\alpha/2,n-2)$, conclude $H_{0}$: constant error variance
+
+- If $|testStatistic| > t(1-\alpha/2,n-2)$, conclude $H_{1}$: non-constant error variance 
+
+*Result:*
+
+Since $|-3.287369| > 1.647944$ i.e. $|testStatistic| > t(1-\alpha/2,n-2)$, we conclude $H_{1}$. The error variance is not constant and thus varies with X.
+
+
+**(E)**
+
+
+```{r}
+library(MASS)
+par(mfrow=c(1,1))
+boxcox(lm_q2)
+
+```
+
+*Interpretation:*
+
+The suggested Y transformation with Box-Cox method is: $\lambda \approx 0$. Thus, we'll assume the suggested $\lambda = 0$ (as suggested in notes Ch.3, slide 77 - "a nearby lambda is easy to understand"), which implies the suggested transformation is: $Y' = log(Y)$. 
+
+
+```{r}
+y1 = log(q2_data$y)
+q2_data = cbind(q2_data, y1)
+
+```
+
+```{r}
+lm_q2_t = lm(y1~x, data=q2_data)
+summary(lm_q2_t)
+```
+
+The regression function using the transformed data = $log(y) = 7.015047 + 0.022357*x$ or $y = \exp(7.015047 + 0.022357*x)$
+
+```{r}
+build_residual_qq(lm=lm_q2_t, df=q2_data, rse=0.6361)
+
+```
+
+
+```{r}
+plot(lm_q2_t)
+```
+
+*Interpretation:*
+
+*Fitted vs. Residual Plot:* The residual plot appears to be mostly equally spread and has no distinct patterns. We still do see a few outliers. We can say that there is mostly a contant variance in the error term.
+
+*Normal Probability Plot:* The plot is mostly linear, which means that the error is mostly in agreement with the normality. This could be due to the approximation we did of the $\lambda$ value we got using Box-Cox method.
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+
+
+```{r}
+```
+

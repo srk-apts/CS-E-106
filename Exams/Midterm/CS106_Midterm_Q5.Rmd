@@ -1,0 +1,67 @@
+---
+title: 'CS-E-106: Data Modeling - Midterm Exam'
+subtitle: '**Question 5**'
+date: '**Due Date:** 10/21/2019'
+author:
+  - '**Instructor: Hakan Gogtas**'
+  - '**Submitted by:** Saurabh Kulkarni'
+output:
+  pdf_document: 
+    latex_engine: xelatex
+---
+
+**Solution 5:** 
+
+**(A)**
+
+*Given:*
+
+```{r}
+n = 45
+F = 970
+MSE = 80
+
+```
+
+$F = \frac{MSR}{MSE}$
+
+```{r}
+MSR = F*MSE
+MSR
+```
+
+$MSE = \frac{SSE}{n-2}$
+
+```{r}
+SSE = MSE*(n-2)
+SSE
+```
+
+
+```{r}
+SSR = MSR/1
+SSR
+```
+
+
+```{r}
+df_R = n-2
+df_E = 1
+
+print(df_R)
+print(df_E)
+```
+
+**(B)**
+
+```{r}
+R2 = 1 - SSE/(SSR+SSE)
+R2
+```
+
+*Interpretation:* We get an R-squared value of 0.96 i.e. 95.7% of the variation in Y is explained by the independent variable X. Thus, the model is statistically significant based on $R^2$ value. 
+
+
+
+
+
