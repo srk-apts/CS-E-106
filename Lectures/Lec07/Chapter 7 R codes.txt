@@ -1,0 +1,30 @@
+f<-lm(Y~X1+X2+X3,data=BodyFat)
+summary(f)
+anova(f)
+f1<-lm(Y~X1+X2,data=BodyFat)
+anova(f1)
+Can we drop X3 from the model?
+anova(f1,f,test="Chi")
+
+#or#
+
+n<-dim(BodyFat)[1]
+
+SSEF <-deviance(f)
+SSER <-deviance(f1)
+F<-((SSER-SSEF)/1)/(SSEF/(n-4))
+1-pf(F,1,n-4)
+
+
+######################
+Standartize Regression
+######################
+library(QuantPsyc)
+lm.beta(f)
+
+######################
+VIF
+#######################
+library(faraway)
+vif(f)
+round(cor(BodyFat),2)
