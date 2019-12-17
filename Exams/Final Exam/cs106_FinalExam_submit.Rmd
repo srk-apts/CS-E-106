@@ -1,0 +1,750 @@
+---
+title: '**CS-E-106: Data Modeling**'
+subtitle: '**Final Exam**'
+author:
+- '**Instructor: Hakan Gogtas**'
+- '**Submitted by:** Saurabh Kulkarni'
+date: '**Due Date:** 12/17/2019'
+output:
+  pdf_document: 
+    latex_engine: xelatex
+
+---
+
+
+
+**Import Libraries**
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(tidy.opts=list(width.cutoff=80), 
+                      fig.width=10, fig.height=5)
+
+loadLib = function(libName)
+{
+    if(require(libName, character.only=TRUE))
+    {
+        cat(libName, "loaded properly\n")
+    } else {
+        cat("Installing", libName, "\n")
+        install.packages(libName)
+        if(require(libName, character.only=TRUE))
+        {
+            cat(libName, "loaded properly\n")
+        } else {
+            stop(c(libName, "not properly installed\n"))
+        }
+    }
+}
+
+libs = c("ggplot2", "knitr", "MASS", "ggcorrplot", "alr3", "faraway",
+         "lattice", "dplyr", "leaps", "olsrr", "qpcR", "rpart",
+         "rpart.plot", "lmtest", "glmnet", "lars", "graphics", "gmodels",
+         "randomForest", "glmnet", "genridge", "neuralnet", "ResourceSelection")
+
+for (lib in libs)
+{
+    loadLib(lib)
+}
+
+```
+
+
+**Question 1**
+Use the PR1_Dataset data which contains 5 continuous variables (no categorical variables), the answer the questions below: (25 pts)
+
+**(a)** Fit a regression model to predict Y by using all variables.  Is there a Multicollinearity in the data? Are the errors Normally distributed with constant variance? Are there any influential or outlier observations? (5pts)
+
+```{r}
+pr1_data = read.csv("PR1_Dataset.csv")
+summary(pr1_data)
+```
+
+
+```{r}
+lm_pr1 = lm(Y~X1+X2+X3+X4+X5, data=pr1_data)
+summary(lm_pr1)
+```
+
+*Interpretation*
+
+$R^2$ is 86%. X2 and X4 are significant and X3 and X3 are not significant.
+
+*Multi-collinearity*
+
+```{r}
+vif(lm_pr1)
+```
+
+*Interpretation*
+
+Since all the VIFs are <10, we can say that there is not any seriour multi-collinearity in the given data.
+
+*Normal Error & Constant Variance*
+
+```{r}
+plot(lm_pr1)
+
+```
+
+*Interpretation*
+
+Normal Probability Plot: We can see that the this plot is mostly linear, so the error terms are in agreement with the normal distribution.
+
+It also show that the error terms have a constant variance. However, we do see some outliers.
+
+*Outliers/Influential Points*
+
+```{r}
+ols_plot_cooksd_chart(lm_pr1)
+ols_plot_resid_stud(lm_pr1)
+```
+
+
+```{r}
+#outliers in Xs
+model = lm_pr1
+df = pr1_data
+n = nrow(df)
+p = length(model$coefficients)
+hii = hatvalues(model)
+index = hii>2*p/n
+print("Hat values outliers")
+index[index]
+
+```
+
+
+
+*Interpretation*
+
+Both Cook's Distance and Hat values show that cases 8, 11, 35 and 36 are outliers. Case 36 is shown as outlier in the studentied residual plot as well. 
+
+Thus, 8,11 and 36 are clear outliers and 12 and 35 need further investigation.
+
+**(b)** Use the stepwise variable selection procedure to find the best model. Is there a Multicollinearity in the data? Are the errors Normally distributed with constant variance? Are there any influential or outlier observations? (5pts)
+
+
+```{r}
+k_pr1 = ols_step_best_subset(lm_pr1, prem=0.05, details=TRUE)
+plot(k_pr1)
+```
+
+**NOTE FOR GRADERS:** 
+
+The above function was running into errors and after repeated troubleshooting was not resolving. Hence, I went with the R function `regsubsets()` from leaps library. See below.
+
+```{r}
+library(olsrr)
+k_pr1 = regsubsets(Y~X1+X2+X3+X4+X5, data=pr1_data)
+rs = summary(k_pr1)
+AIC <- nrow(pr1_data)*log(rs$rss/nrow(pr1_data)) + (2:6)*2
+par(mfrow=c(1,1))
+plot(AIC ~ I(1:5), ylab="AIC", xlab="Number of Predictors")
+```
+
+```{r}
+rs$which
+rs$adjr2
+```
+
+*Interpretation*
+
+We can see that model #3, containing X2 and X4 gives us the best asdjusted $R^2$ as we see the elbow at that model (based on the printed adj. R2 values above).
+
+```{r}
+pr1_best_lm = lm(Y~X2+X4, data=pr1_data)
+summary(pr1_best_lm)
+```
+
+*Multi-collinearity:* No multi-collinearity exists.
+
+```{r}
+vif(pr1_best_lm)
+```
+
+*Normal Error & Constant Variance*
+
+```{r}
+plot(pr1_best_lm)
+```
+
+*Interpretation*
+
+Normal Probability Plot: We can see that the this plot is mostly linear, so the error terms are in agreement with the normal distribution.
+
+It also show that the error terms have a constant variance. However, we do see some outliers.
+
+
+
+*Outliers/Influential Points*
+
+```{r}
+ols_plot_cooksd_chart(pr1_best_lm)
+ols_plot_resid_stud(pr1_best_lm)
+```
+
+
+```{r}
+#outliers in Xs
+model = pr1_best_lm
+df = pr1_data
+n = nrow(df)
+p = length(model$coefficients)
+hii = hatvalues(model)
+index = hii>2*p/n
+print("Hat values outliers")
+index[index]
+
+```
+
+
+
+*Interpretation*
+
+Both Cook's Distance and Hat values show that only cases 11, 12 and 36 are outliers. Case 36 is shown as outlier in the studentied residual plot as well. 8 is no longer an outlier according to Cook's Distance
+
+
+**(c)** Use the model built in part b, exclude the observation with the largest cook distance and refit the model and comment the model results (5pts)
+
+```{r}
+lm_pr1c = lm(Y~X2+X4, data=pr1_data[-36,])
+summary(lm_pr1c)
+```
+
+*Interpretation*
+
+$R^2$ is increased to 88% from 84% in part(b). We also see a decrease in the standard errors for both the coefficients suggesting a tighter fit, more confident fit. Thus, case #36 is truly an influential point.
+
+
+**(d)** Use the model built in part b, fit the robust regression and compared it against the model in part c, comments on the model results. (5pts)
+
+```{r}
+lm_pr1d = rlm(Y~X2+X4, data=pr1_data)
+summary(lm_pr1d)
+```
+
+*Interpretation:*
+
+We see that the coefficients and residual standard error are not very different from those obtained in part (c) i.e. without largest cook's distance observation. However, we see greater difference compared to the coefficients and RSE values obtained in part (b). Which means that the robust regression probably gives much lower weight to case #36 during the model fitting process.
+
+
+**(e)** Use the model built in part b, predict Y for X1=75, X2=78, X3=34, X4=18, X5=18 and calculate 95% confidence interval (5pts).
+
+```{r}
+Xh = data.frame(cbind(X1=75,X2=78,X3=34, X4=18, X5=18))
+pred = predict(pr1_best_lm, Xh, se.fit=TRUE, interval="confidence", level=1-0.05)
+pred
+```
+
+
+
+**Question 2**  Use the PR2_Dataset data: X4, X5, X6, and X7 are the categorical variables, Y and remaining independent variables are continuous variables. X4 has two levels, X5 has 4, X6 has 5, and X7 has 3 levels (create dummy variables for the categorical variables).  Answer the questions below: (30 pts)
+
+```{r}
+pr2_data = read.csv("PR2_Dataset.csv")
+pr2_data$X4 = as.factor(pr2_data$X4)
+pr2_data$X5 = as.factor(pr2_data$X5)
+pr2_data$X6 = as.factor(pr2_data$X6)
+pr2_data$X7 = as.factor(pr2_data$X7)
+summary(pr2_data)
+```
+
+
+```{r}
+pr2_data$X4_1 = ifelse(pr2_data$X4==1, 1, 0)
+
+pr2_data$X5_1 = ifelse(pr2_data$X5==1, 1, 0)
+pr2_data$X5_2 = ifelse(pr2_data$X5==2, 1, 0)
+pr2_data$X5_3 = ifelse(pr2_data$X5==3, 1, 0)
+
+pr2_data$X6_1 = ifelse(pr2_data$X6==1, 1, 0)
+pr2_data$X6_2 = ifelse(pr2_data$X6==2, 1, 0)
+pr2_data$X6_3 = ifelse(pr2_data$X6==3, 1, 0)
+pr2_data$X6_4 = ifelse(pr2_data$X6==4, 1, 0)
+
+pr2_data$X7_1 = ifelse(pr2_data$X7==1, 1, 0)
+pr2_data$X7_2 = ifelse(pr2_data$X7==2, 1, 0)
+
+```
+
+**(a)** Fit a regression model to predict Y by using all variables.  Is there a Multicollinearity in the data? Are the errors Normally distributed with constant variance? Are there any influential or outlier observations? (10 pts)
+
+```{r}
+lm_pr2 = lm(Y~X1+X2+X3+X4_1+X5_1+X5_2+X5_3+X6_1+X6_2+X6_3+X6_4+X7_1+X7_2, data=pr2_data)
+summary(lm_pr2)
+```
+*Interpretation*
+
+We see that $R^2$ is 82%. X1, X2, X4, X5_1 seem to be significant.
+
+*Multi-collinearity*
+
+```{r}
+vif(lm_pr2)
+```
+
+*Interpretation*
+
+We do see some multi-collinearity, but nothing drastic.
+
+*Normal Error & Constant Variance*
+
+```{r}
+plot(lm_pr2)
+```
+
+*Interpretation*
+
+We see that the normal probability plot is not linear and the error variance is not constant.
+
+*Outliers*
+
+```{r}
+ols_plot_cooksd_chart(lm_pr2)
+
+```
+
+
+```{r}
+#outliers in Xs
+model = lm_pr2
+df = pr2_data
+n = nrow(df)
+p = length(model$coefficients)
+hii = hatvalues(model)
+index = hii>2*p/n
+print("Hat values outliers")
+index[index]
+
+```
+
+*Interpretation*
+
+#109, 64, 65 and 91 are clear outliers according to the y-values. Outliers according to hat values printed above. 109 and 91 are common in both.
+
+
+
+
+**(b)**  Conduct the Breusch-Pagan for testing unequal variances and document your results (5pts).
+
+Null Hypothesis: $H_{0}$: Error variance is constant
+
+Alternate Hypothesis: $H_{1}$: Error variance is not constant
+
+```{r}
+ei = lm_pr2$residuals
+ei2 = ei^2
+df = as.data.frame(cbind(pr2_data, ei, ei2))
+f = lm(ei2~X1+X2+X3+X4_1+X5_1+X5_2+X5_3+X6_1+X6_2+X6_3+X6_4+X7_1+X7_2, data=df)
+summary(f)
+
+#to find SSE(R) and SSR(R)
+anova_R = as.data.frame(anova(f))
+anova_R
+
+#to find SSE(F) and SSR(F)
+anova_F =  as.data.frame(anova(lm_pr2))
+anova_F
+
+```
+
+```{r}
+nrow(anova_R)
+nrow(anova_F)
+```
+
+
+```{r}
+
+SSR_R = sum(anova_R[1:13,2]) 
+SSE_R = anova_R[14,2]
+
+SSR_F = sum(anova_F[1:13,2])
+SSE_F= anova_F[14,2] 
+
+n = nrow(pr2_data)
+
+#chi-squared: [SSR(R)/2] / [SSE(F)/n]^2  
+chiTest = (SSR_R/2) / ((SSE_F/n))^2
+print(chiTest)
+
+
+#p 
+chi = qchisq(1-0.05,1)
+print(chi)
+
+```
+
+
+Decision Rule:
+
+- If $chiTest \leq \chi^{2}(1-\alpha,1)$, conclude $H_{0}$: constant error variance
+
+- If $chiTest > \chi^{2}(1-\alpha,1)$, conclude $H_{1}$: non-constant error variance 
+
+
+Result:
+Since $144.9321 > 3.841459$ i.e. $chiTest > \chi^{2}(1-\alpha,1)$, we conclude $H_{a}$. The error variance is not constant.
+
+**(c)** Use weight least squares regression (perform only one iteration) document your results. (5 pts)
+
+```{r}
+ei_abs = abs(ei)
+df1 = as.data.frame(cbind(pr2_data,ei_abs))
+lm_ei_2c = lm(ei_abs~X1+X2+X3+X4_1+X5_1+X5_2+X5_3+X6_1+X6_2+X6_3+X6_4+X7_1+X7_2, data=df1)
+summary(lm_ei_2c)
+```
+
+
+```{r}
+si = lm_ei_2c$fitted.values
+wi = 1/(si^2)
+```
+
+
+```{r}
+lm_2c = lm(Y~X1+X2+X3+X4_1+X5_1+X5_2+X5_3+X6_1+X6_2+X6_3+X6_4+X7_1+X7_2, weights=wi, data=pr2_data)
+summary(lm_2c)
+```
+
+**(d)** Compare your model in part a against the regression tree and Neural Network Model, and calculate the SSE for each model, which method has the lowest SSE? And explain which model you will choose. (10 pts)
+
+
+```{r}
+yHat_lm = lm_pr2$fitted.values
+yAct = pr2_data$Y
+SSE_lm = sum((yHat_lm-yAct)^2)
+SSE_lm
+```
+
+
+```{r}
+tree_pr2d = rpart(Y~X1+X2+X3+X4_1+X5_1+X5_2+X5_3+X6_1+X6_2+X6_3+X6_4+X7_1+X7_2, data=pr2_data)
+```
+
+```{r}
+yHat_tree = predict(tree_pr2d, pr2_data)
+yAct = pr2_data$Y
+SSE_tree = sum((yHat_tree-yAct)^2)
+SSE_tree
+```
+
+
+```{r}
+#Scale training data
+pr2_num = pr2_data[,c("Y", "X1", "X2", "X3")]
+max = apply(pr2_num, 2, max)
+min = apply(pr2_num, 2, min)
+scaled_pr2_data = as.data.frame(scale(pr2_num, center=min, scale=max-min))
+new_df = pr2_data
+new_df[,c("Y", "X1", "X2", "X3")] = scaled_pr2_data
+summary(new_df)
+```
+
+```{r}
+NN = neuralnet(Y~X1+X2+X3+X4_1+X5_1+X5_2+X5_3+X6_1+X6_2+X6_3+X6_4+X7_1+X7_2, data=new_df, hidden=14 , linear.output= T)
+plot(NN)
+```
+
+```{r}
+maxY= max(pr2_data$Y)
+minY = min(pr2_data$Y)
+```
+
+
+```{r}
+yHat_NN = predict(NN, new_df)*(maxY-minY)+minY
+yAct = new_df$Y*(maxY-minY)+minY
+SSE_NN = sum((yHat_NN-yAct)^2)
+SSE_NN
+```
+
+
+```{r}
+cbind(SSE_lm, SSE_tree, SSE_NN)
+```
+
+*Interpretation*
+
+We see that Neural network has the lowest SSE, however, we should use the linear model as it gives a good balance between predictability and interpretability.
+
+
+**Question 3** Use the PR3_Dataset data: Y is the outcome variable and indicates the number of awards earned by students at a high school in a year, X1 is a categorical predictor variable with three levels indicating the type of program in which the students were enrolled. It is coded as 1 = “General”, 2 = “Academic” and 3 = “Social”,  and X2 is a continuous predictor variable and represents students’ scores on their math final exam. Answer the following questions: (20pts)
+
+**(a)** Build a model to predict the number of awards earned by students, is the model significant? (5pts)
+
+```{r}
+pr3_data = read.csv("PR3_Dataset.csv")
+pr3_data$X1 = as.factor(pr3_data$X1)
+summary(pr3_data)
+```
+
+
+```{r}
+pr3_data$X1_1 = ifelse(pr3_data$X1==1, 1,0)
+pr3_data$X1_2 = ifelse(pr3_data$X1==2, 1,0)
+
+```
+
+
+```{r}
+pmod_pr3 = glm(Y~X1_1+X1_2+X2, data=pr3_data, family=poisson)
+summary(pmod_pr3)
+```
+
+```{r}
+nothing = glm(Y~1, data=pr3_data)
+```
+
+
+```{r}
+anova(pmod_pr3, nothing, test="Chisq")
+```
+
+*Interpretation*
+
+We see tha the model is significant. And X2 and X1_2 are the significant variables.
+
+**(b)** Find the predicted number awards earned by students given the independent variables below and calculate 99% confidence interval. (5pts)
+
+```{r}
+Xh = data.frame(cbind(X1_2=1,X1_1=0,X2=75))
+predict(pmod_pr3, Xh, type="response", se.fit=TRUE)
+
+```
+
+
+```{r}
+pre1 = predict(pmod_pr3, Xh, type="link", se.fit=TRUE)
+LowerCL = pre1$fit-qnorm(0.01,1)*pre1$se.fit
+UpperCL = pre1$fit-qnorm(0.01,1)*pre1$se.fit
+Prediction = pre1$fit
+round(cbind(LowerCL,Prediction,UpperCL),3)
+```
+
+
+**(c)**  Fit the negative binomial model and compare it the model built in part a, which model is better? (10pts)
+
+```{r}
+lmod_pr3 = glm(Y~X1_1+X1_2+X2, data=pr3_data, family=negative.binomial(1))
+summary(lmod_pr3)
+
+```
+
+*Interpretation*
+
+We see that the residual deviance for negative binomial model is 123 compared to 189 for poission regression model. Thus, this model gives a better fit.
+
+
+**Question 4** Use the PR4_Dataset data, Y is a dichotomous response variable. X2, X3, and X4 are categorical variables: X2 has 3 levels, X3 and X4 have 2 levels (create dummy variables for the categorical variables). Answer the questions below: (20pts)
+
+
+```{r}
+pr4_data = read.csv("PR4_Dataset.csv")
+summary(pr4_data)
+```
+
+```{r}
+pr4_data$X2_1 = ifelse(pr4_data$X2==1,1,0)
+pr4_data$X2_2 = ifelse(pr4_data$X2==2,1,0)
+
+pr4_data$X1.X2_1 = pr4_data$X1*pr4_data$X2_1
+pr4_data$X1.X2_2 = pr4_data$X1*pr4_data$X2_2
+pr4_data$X1.X3 = pr4_data$X1*pr4_data$X3
+pr4_data$X1.X4 = pr4_data$X1*pr4_data$X4
+
+pr4_data$X2_2.X2_1 = pr4_data$X2_2*pr4_data$X2_1
+pr4_data$X2_2.X3 = pr4_data$X2_2*pr4_data$X3
+pr4_data$X2_2.X4 = pr4_data$X2_2*pr4_data$X4
+
+pr4_data$X2_1.X3 = pr4_data$X2_2*pr4_data$X3
+pr4_data$X2_1.X4 = pr4_data$X2_2*pr4_data$X4
+
+pr4_data$X3.X4 = pr4_data$X3*pr4_data$X4
+
+new_pr4_data = pr4_data[,-which(colnames(pr4_data)%in%c("X2"))]
+```
+
+**(a)** Fit a regression model containing the predictor variables in first-order terms and interaction terms (e.g X1*X2) for all pairs of predictor variables. (5pts)
+
+```{r}
+lmod_pr4 = glm(Y~., data=new_pr4_data, family=binomial)
+summary(lmod_pr4)
+```
+
+**(b)** Use the likelihood ratio test to determine whether all interaction terms can be dropped from the regression model; State the alternatives, full and reduced models, decision rule, and conclusion. (5pts)
+
+```{r}
+lmod_red =  glm(Y~X1+X2_1+X2_2+X3+X4, data=new_pr4_data, family=binomial)
+```
+
+
+```{r}
+anova(lmod_pr4, lmod_red, test="Chisq")
+```
+
+*Interpretation*
+
+We see that the p-value is 0.94 which means that there is not much difference between the deviance of the two models. Thus, we can drop all the interaction terms. 
+
+**(c)** Perform the backward variable selection method to find a model where all variables are significant and Conduct the Hosmer-Lemeshow goodness of fit test for the appropriateness of the logistic regression function by forming five groups. State the alternatives, decision rule, and conclusion. (5pts)
+
+```{r}
+model = glm(Y ~ X1 + X3 + X4 + X2_1 + X2_2 + X1.X2_1 + X1.X2_2 + 
+    X1.X3 + X1.X4 + X2_2.X3 + X2_2.X4 + X3.X4, data=new_pr4_data, family=binomial)
+summary(model)
+
+```
+
+
+```{r}
+model = glm(Y ~ X1 + X3 + X4 + X2_1 + X2_2 + X1.X2_1 + X1.X2_2 + 
+    X1.X3 + X1.X4 + X2_2.X3 + X3.X4, data=new_pr4_data, family=binomial)
+summary(model)
+```
+
+
+```{r}
+model = glm(Y ~ X1 + X3 + X4 + X2_1 + X2_2 + X1.X2_2 + 
+    X1.X3 + X1.X4 + X2_2.X3 + X3.X4, data=new_pr4_data, family=binomial)
+summary(model)
+```
+
+
+```{r}
+model = glm(Y ~ X1 + X3 + X4 + X2_1 + X2_2 +
+    X1.X3 + X1.X4 + X2_2.X3 + X3.X4, data=new_pr4_data, family=binomial)
+summary(model)
+```
+
+
+```{r}
+model = glm(Y ~ X1 + X3 + X4 + X2_1 + X2_2 +
+    X1.X3 + X1.X4 +  X3.X4, data=new_pr4_data, family=binomial)
+summary(model)
+```
+
+
+```{r}
+model = glm(Y ~ X1 + X3 + X4 + X2_1 + X2_2 +
+    X1.X3 + X3.X4, data=new_pr4_data, family=binomial)
+summary(model)
+```
+
+
+```{r}
+model = glm(Y ~ X1 + X3 + X4 + X2_1 + X2_2 +
+    X3.X4, data=new_pr4_data, family=binomial)
+summary(model)
+```
+
+```{r}
+model = glm(Y ~ X1 + X3 + X4 + X2_1 + X2_2, data=new_pr4_data, family=binomial)
+summary(model)
+```
+
+
+```{r}
+model = glm(Y ~ X1 + X3 + X2_1 + X2_2, data=new_pr4_data, family=binomial)
+summary(model)
+```
+
+**NOTE** I performed a manual backward elimination due to a bug in the ols_step_backward_p() function -- same library gave me error in the earlier question.
+
+*Interpretation*
+
+We remove the variable with highest p-value at each step and the above model where all variables (X1, X3, X2_1 and X2_2) are significant.
+
+```{r}
+lmod_pr4_best = glm(Y ~ X1 + X3 + X2_1 + X2_2, data=new_pr4_data, family=binomial)
+summary(lmod_pr4_best)
+```
+
+
+**(d)** Use the model developed in part c and predict probability of Y for the following two cases and calculate 95% confidence interval. (5pts)
+
+```{r}
+Xh = data.frame(cbind(X1=c(60,11),X2_1=c(1,0),X2_2=c(0,1), X3=c(0,1), X4=c(0,1)))
+pre1 = predict(lmod_pr4_best, Xh, type="link", se.fit=T)
+LowerCL = pre1$fit-1.96*pre1$se.fit; UpperCL = pre1$fit+1.96*pre1$se.fit
+Prediction = pre1$fit
+results = round(cbind(LowerCL,Prediction,UpperCL),3)
+ilogit(results)
+
+```
+
+**Question 5**  Use the PR4_Dataset data. All variables including Y are continuous variables.  Fit a regression model to predict Y. Is there a Multicollinearity in the data? Are the errors Normally distributed with constant variance? Are there any influential or outlier observations? check to see if auto-correlation persists in the data set, write null and alternatives hypothesis and calculate p value. (5 pts)
+
+```{r}
+pr5_data = read.csv("PR5_Dataset.csv")
+summary(pr5_data)
+```
+
+
+```{r}
+lm_pr5 = lm(Y~., data=pr5_data)
+summary(lm_pr5)
+```
+
+
+*Multi-collinearity*
+
+```{r}
+vif(lm_pr5)
+```
+
+*Interpretation*
+
+Since all the VIFs are <10, we can say that there is not any serious multi-collinearity in the given data.
+
+*Normal Error & Constant Variance*
+
+```{r}
+plot(lm_pr5)
+
+```
+
+*Interpretation*
+
+Normal Probability Plot: We can see that the this plot is mostly linear, so the error terms are in agreement with the normal distribution.
+
+It also show that the error terms have a constant variance. However, we do see some outliers.
+
+*Outliers/Influential Points*
+
+```{r}
+ols_plot_cooksd_chart(lm_pr5)
+ols_plot_resid_stud(lm_pr5)
+```
+
+
+```{r}
+#outliers in Xs
+model = lm_pr5
+df = pr5_data
+n = nrow(df)
+p = length(model$coefficients)
+hii = hatvalues(model)
+index = hii>2*p/n
+print("Hat values outliers")
+index[index]
+
+```
+
+*Interpretation*
+
+Cook's distance and studentised residuals don't show any clear outliers in the dataset.
+
+Hat values do show some outliers as printed above.
+
+Overall I think the model is a good fit to the data with no outliers, multicollinearity and with error constant variance.
+
+```{r}
+dwtest(lm_pr5)
+```
+
+*Interpretation*
+
+There is no auto-correlation in the data.
+
